@@ -504,9 +504,10 @@ function updateReadout(){
     return;
   }
 
-  kmEl.textContent = result.distance > OFF_NETWORK_KM ? '--.---' : formatKmStation(result.km);
+  const isOffMappedNetwork = result.distance > OFF_NETWORK_KM;
+  kmEl.textContent = isOffMappedNetwork ? '--.---' : formatKmStation(result.km);
   const displayBound = userBound || '?';
-  if(result.distance > OFF_NETWORK_KM){
+  if(isOffMappedNetwork){
     tagEl.textContent = `⚠ Off mapped network (~${Math.round(result.distance*1000)}m from ${result.expressway})`;
     tagEl.classList.add('faroff');
   } else {
@@ -586,18 +587,26 @@ function logDefect(type){
     alert('Waiting for GPS fix — please allow location access and wait a moment.');
     return;
   }
+
   const result = computeKmStation(currentPos.lat, currentPos.lon);
+
+  // Use the exact same off-network rule as the live KM display.
+  // If the vehicle is off the mapped network, do NOT save the nearest
+  // calibration point's KM, expressway, or bound into the defect entry.
+  const isOffMappedNetwork = !result || result.distance > OFF_NETWORK_KM;
   const lane = '';
+
   entries.push({
     type,
     timestamp: fullTimestamp(),
     lat: currentPos.lat,
     lon: currentPos.lon,
-    km: result ? result.km : null,
-    expressway: result ? result.expressway : '',
-    bound: userBound || '',
+    km: isOffMappedNetwork ? null : result.km,
+    expressway: isOffMappedNetwork ? '' : result.expressway,
+    bound: isOffMappedNetwork ? '' : (userBound || ''),
     lane
   });
+
   saveEntries();
   renderLog();
 }
