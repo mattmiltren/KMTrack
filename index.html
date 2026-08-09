@@ -4,15 +4,12 @@
 <meta charset="UTF-8">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Road Trace">
+<meta name="apple-mobile-web-app-title" content="Chainage">
 <meta name="theme-color" content="#07131f">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Road Inspect">
 <meta name="mobile-web-app-capable" content="yes">
 <link rel="apple-touch-icon" href="ROADTRACE.png">
-<title>Road Inspection Logger</title>
+<title>Chainage — Road Inspection Logger</title>
 <style>
   :root{
     --asphalt:#191c1f;
@@ -209,10 +206,10 @@ button {
 
 <header>
   <div class="header-brand">
-    <img class="header-logo" src="ROADTRACE_LOGO.png" alt="Road Trace">
+    <img class="header-logo" src="ROADTRACE_LOGO.png" alt="Chainage">
     <div class="header-divider"></div>
     <div class="header-copy">
-      <h1><span class="blue">Road Inspection</span> <span class="white">Logger</span></h1>
+      <h1><span class="blue">Chainage</span> <span class="white">— Road Inspection Log</span></h1>
       <div class="sub" id="clock">-- -- --</div>
       <div class="sub" id="storage-status">checking on-device storage...</div>
     </div>
@@ -746,7 +743,7 @@ document.getElementById('export-btn').addEventListener('click', () => {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   const d = new Date();
-  const fname = `road_inspection_${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}.csv`;
+  const fname = `chainage_${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}.csv`;
   a.href = url;
   a.download = fname;
   document.body.appendChild(a);
