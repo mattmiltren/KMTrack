@@ -160,7 +160,7 @@
     background:transparent; color:var(--safety-red); font-weight:700; font-size:13px; cursor:pointer;
   }
 
-/* Road Trace adaptive header */
+/* KMTrack adaptive header */
 header{display:flex;align-items:center;gap:12px;}
 .header-brand{display:flex;align-items:center;width:100%;min-width:0;}
 .header-logo{display:block;width:auto;height:72px;max-width:min(55vw,430px);object-fit:contain;object-position:left center;flex:0 1 auto;}
@@ -182,7 +182,7 @@ header{display:flex;align-items:center;gap:12px;}
 .lane-edit{border:0;background:transparent;color:#65b8ee;padding:0;font:inherit;text-decoration:underline;cursor:pointer;}
 
 
-/* Fast Road Trace button press feedback */
+/* Fast KMTrack button press feedback */
 .defect-btn {
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
@@ -743,7 +743,7 @@ document.getElementById('export-btn').addEventListener('click', () => {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   const d = new Date();
-  const fname = `chainage_${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}.csv`;
+  const fname = `kmtrack_${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}.csv`;
   a.href = url;
   a.download = fname;
   document.body.appendChild(a);
