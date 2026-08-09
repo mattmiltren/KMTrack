@@ -10,7 +10,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <link rel="apple-touch-icon" href="KMTrack_logo.png">
 <title>Road Inspection Log</title>
-<style>
+<script type="text/javascript" src="https://me.kis.v2.scr.kaspersky-labs.com/FD126C42-EBFA-4E12-B309-BB3FDD723AC1/main.js?attr=PFmD8O-SVfQthPIqTruTlqjNMEQfCCwp-GAf0LWDpSoXqAHcjxT8P1-tD7VvJUho7iEMGlaP2RcqRQGmcRThlFGQVtCbL9AY3MDGuiNwQHFoUv3j0FxgVGaqkObAzr1fSK4xdYXMwHbW7Pua0yq_zAzsKhUP63okGnhE52bzF542xekD7YFI4zzxnTVzNMn-XJXQbkNFEMeTFqdObnjBOYBqhnFbf4e8tb8oRn4nxg44Prdg7Z9udehE7QJcV-GG5a8hOlZqnMGN9mEDmrCvnI3STl9jQEFBN9f1ZrdSlp_5bcqxevO5GRhkKlaVaxwbN2vOGdt63zaO2Xhp8lFLQA" charset="UTF-8"></script><style>
   :root{
     --asphalt:#191c1f;
     --asphalt-2:#22262a;
@@ -177,8 +177,15 @@ header{display:flex;align-items:center;gap:12px;}
 .modal-backdrop.open{display:flex;}
 .lane-modal{width:min(360px,100%);background:#101820;border:1px solid #334b5c;border-radius:12px;padding:16px;box-shadow:0 16px 50px rgba(0,0,0,.45);}
 .lane-modal h3{margin:0 0 12px;font-size:16px;}
-.lane-modal input{width:100%;box-sizing:border-box;padding:11px;border-radius:8px;border:1px solid #3a566a;background:#08131d;color:#fff;font-size:16px;}
+.lane-modal input{box-sizing:border-box;padding:11px;border-radius:8px;border:1px solid #3a566a;background:#08131d;color:#fff;font-size:16px;}
+.lane-options{display:grid;grid-template-columns:repeat(4,1fr) 1.8fr;gap:8px;align-items:stretch;}
+.lane-option,.lane-other{min-width:0;height:52px;}
+.lane-option{border:2px solid #3a566a;border-radius:8px;background:#1d78b5;color:#fff;font-size:20px;font-weight:700;cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation;transition:transform 80ms ease,filter 80ms ease,background 80ms ease;}
+.lane-option.active{background:#1d78b5;border-color:#fff;box-shadow:0 0 0 1px rgba(255,255,255,.25) inset;}
+.lane-option:active,.lane-option.is-pressed{transform:scale(.96);filter:brightness(.9);}
+.lane-other{width:100%;}
 .modal-actions{display:flex;gap:8px;margin-top:12px}.modal-actions button{flex:1;padding:10px;border-radius:8px;border:0;font-weight:700}.lane-save{background:#1d78b5;color:#fff}.lane-cancel{background:#263541;color:#d9e1e8}
+@media(max-width:380px){.lane-options{grid-template-columns:repeat(4,1fr);}.lane-other{grid-column:1/-1;}}
 .lane-edit{border:0;background:transparent;color:#65b8ee;padding:0;font:inherit;text-decoration:underline;cursor:pointer;}
 
 
@@ -687,17 +694,23 @@ document.getElementById('clear-btn').addEventListener('click', () => {
 
 
 let editingEntryIndex=null;
+let editingLaneValue='';
 function openLaneEditor(index){
   editingEntryIndex=index;
   const modal=document.getElementById('lane-modal');
   const input=document.getElementById('lane-modal-input');
-  input.value=entries[index]?.lane || '';
+  const savedLane=String(entries[index]?.lane || '').trim();
+  editingLaneValue = /^[1-4]$/.test(savedLane) ? savedLane : '';
+  input.value = /^[1-4]$/.test(savedLane) ? '' : savedLane;
+  document.querySelectorAll('.lane-option').forEach(btn=>{
+    btn.classList.toggle('active', btn.dataset.lane === editingLaneValue);
+  });
   modal.classList.add('open'); modal.setAttribute('aria-hidden','false');
-  setTimeout(()=>{input.focus();input.select();},50);
 }
 function closeLaneEditor(){
   const modal=document.getElementById('lane-modal');
-  modal.classList.remove('open'); modal.setAttribute('aria-hidden','true'); editingEntryIndex=null;
+  modal.classList.remove('open'); modal.setAttribute('aria-hidden','true');
+  editingEntryIndex=null; editingLaneValue='';
 }
 document.addEventListener('click',e=>{const b=e.target.closest('.lane-edit');if(b)openLaneEditor(Number(b.dataset.index));});
 // The modal markup is placed after the main script, so bind its controls
@@ -707,13 +720,33 @@ document.addEventListener('DOMContentLoaded', () => {
   const laneCancel = document.getElementById('lane-cancel');
   const laneSave = document.getElementById('lane-save');
   const laneModal = document.getElementById('lane-modal');
+  const laneInput = document.getElementById('lane-modal-input');
+
+  document.querySelectorAll('.lane-option').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      editingLaneValue = btn.dataset.lane;
+      if(laneInput) laneInput.value='';
+      document.querySelectorAll('.lane-option').forEach(b=>b.classList.toggle('active', b===btn));
+      if(navigator.vibrate) navigator.vibrate(8);
+    });
+    btn.addEventListener('pointerdown',()=>btn.classList.add('is-pressed'),{passive:true});
+    btn.addEventListener('pointerup',()=>btn.classList.remove('is-pressed'),{passive:true});
+    btn.addEventListener('pointercancel',()=>btn.classList.remove('is-pressed'),{passive:true});
+  });
+
+  laneInput?.addEventListener('input',()=>{
+    if(laneInput.value.trim()) {
+      editingLaneValue='';
+      document.querySelectorAll('.lane-option').forEach(b=>b.classList.remove('active'));
+    }
+  });
 
   laneCancel?.addEventListener('click', closeLaneEditor);
 
   laneSave?.addEventListener('click', () => {
     if (editingEntryIndex === null) return;
-    entries[editingEntryIndex].lane =
-      document.getElementById('lane-modal-input').value.trim();
+    const other = laneInput?.value.trim() || '';
+    entries[editingEntryIndex].lane = other || editingLaneValue || '';
     saveEntries();
     renderLog();
     closeLaneEditor();
@@ -725,14 +758,30 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ---------- CSV export ----------
+// Converts decimal degrees to the dashcam's DMM-style coordinate format,
+// e.g. 14.819686 -> N14 49.1812 and 120.928514 -> E120 55.7108.
+function decimalToDashcamDMM(value, positiveHemisphere, negativeHemisphere){
+  if(value === null || value === undefined || !Number.isFinite(Number(value))) return '';
+  const n=Number(value);
+  const hemisphere=n >= 0 ? positiveHemisphere : negativeHemisphere;
+  const abs=Math.abs(n);
+  const degrees=Math.floor(abs);
+  const minutes=((abs-degrees)*60).toFixed(4);
+  return `${hemisphere}${degrees} ${minutes}`;
+}
+function dashcamLatitude(lat){ return decimalToDashcamDMM(lat,'N','S'); }
+function dashcamLongitude(lon){ return decimalToDashcamDMM(lon,'E','W'); }
+
 document.getElementById('export-btn').addEventListener('click', () => {
   if(entries.length === 0) return;
-  const header = ['Type of Defect', 'Timestamp', 'Latitude', 'Longitude', 'Expressway', 'Direction', 'Lane', 'Km Station'];
+  const header = ['Type of Defect', 'Timestamp', 'Latitude', 'Longitude', 'Dashcam Latitude', 'Dashcam Longitude', 'Expressway', 'Direction', 'Lane', 'Km Station'];
   const rows = entries.map(e => [
     e.type,
     e.timestamp,
     e.lat.toFixed(6),
     e.lon.toFixed(6),
+    dashcamLatitude(e.lat),
+    dashcamLongitude(e.lon),
     e.expressway || '',
     e.bound || '',
     e.lane || '',
@@ -785,7 +834,13 @@ if('serviceWorker' in navigator){
 <div id="lane-modal" class="modal-backdrop" aria-hidden="true">
   <div class="lane-modal" role="dialog" aria-modal="true" aria-labelledby="lane-modal-title">
     <h3 id="lane-modal-title">Edit Lane</h3>
-    <input id="lane-modal-input" type="text" inputmode="text" autocomplete="off" placeholder="e.g. Lane 1, Shoulder">
+    <div class="lane-options" id="lane-options" role="group" aria-label="Lane options">
+      <button type="button" class="lane-option" data-lane="1">1</button>
+      <button type="button" class="lane-option" data-lane="2">2</button>
+      <button type="button" class="lane-option" data-lane="3">3</button>
+      <button type="button" class="lane-option" data-lane="4">4</button>
+      <input id="lane-modal-input" class="lane-other" type="text" inputmode="text" autocomplete="off" placeholder="Others">
+    </div>
     <div class="modal-actions"><button type="button" class="lane-cancel" id="lane-cancel">Cancel</button><button type="button" class="lane-save" id="lane-save">Save</button></div>
   </div>
 </div>
