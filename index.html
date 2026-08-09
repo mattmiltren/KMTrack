@@ -696,13 +696,29 @@ function closeLaneEditor(){
   modal.classList.remove('open'); modal.setAttribute('aria-hidden','true'); editingEntryIndex=null;
 }
 document.addEventListener('click',e=>{const b=e.target.closest('.lane-edit');if(b)openLaneEditor(Number(b.dataset.index));});
-document.getElementById('lane-cancel').addEventListener('click',closeLaneEditor);
-document.getElementById('lane-save').addEventListener('click',()=>{
-  if(editingEntryIndex===null)return;
-  entries[editingEntryIndex].lane=document.getElementById('lane-modal-input').value.trim();
-  saveEntries(); renderLog(); closeLaneEditor();
+// The modal markup is placed after the main script, so bind its controls
+// after the document has finished parsing. This prevents Safari/iOS from
+// hitting null elements and leaving Save/Cancel unbound.
+document.addEventListener('DOMContentLoaded', () => {
+  const laneCancel = document.getElementById('lane-cancel');
+  const laneSave = document.getElementById('lane-save');
+  const laneModal = document.getElementById('lane-modal');
+
+  laneCancel?.addEventListener('click', closeLaneEditor);
+
+  laneSave?.addEventListener('click', () => {
+    if (editingEntryIndex === null) return;
+    entries[editingEntryIndex].lane =
+      document.getElementById('lane-modal-input').value.trim();
+    saveEntries();
+    renderLog();
+    closeLaneEditor();
+  });
+
+  laneModal?.addEventListener('click', e => {
+    if (e.target.id === 'lane-modal') closeLaneEditor();
+  });
 });
-document.getElementById('lane-modal').addEventListener('click',e=>{if(e.target.id==='lane-modal')closeLaneEditor();});
 
 // ---------- CSV export ----------
 document.getElementById('export-btn').addEventListener('click', () => {
