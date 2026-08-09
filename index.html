@@ -725,8 +725,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.querySelectorAll('.lane-quick-btn').forEach(btn => {
     btn.addEventListener('click', () => {
+      if(editingEntryIndex === null) return;
       laneInput.value = btn.dataset.lane;
       setActiveLaneBtn(btn.dataset.lane);
+      entries[editingEntryIndex].lane = btn.dataset.lane;
+      saveEntries();
+      renderLog();
+      closeLaneEditor();
     });
   });
   laneInput?.addEventListener('input', () => setActiveLaneBtn(laneInput.value.trim()));
