@@ -9,7 +9,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <link rel="apple-touch-icon" href="ROADTRACE.png">
 <title>Road Trace | NLEX</title>
-<style>
+<script type="text/javascript" src="https://me.kis.v2.scr.kaspersky-labs.com/FD126C42-EBFA-4E12-B309-BB3FDD723AC1/main.js?attr=z-MOjo_7url-yXqiUvX-abORK12NlKaApaz2xAu9uMUqepGiO1J39WERuzJ9_rBGydCN8vHWcjjwE1ljiQ-6HaN6od8LU9opO9wp0Wku6EnqliYsAPpq4X_I8_J4sync7tGZ-YmMQbpc6u6dTqzUGUZOpmkbv055JcLWWo6vM20P66bxfRhSD_AchSnJFRy7fggvRLuxPUMXPftUzVeaIGAeVcsxrAPrXt0z-MUKK_1DPkZzW-SrIeRXsm6DS_GKeFKanQWaoD047Ak2rSAmf1u7NVoqCnJ8s2n71MDzIrHsM5sGh141eW00hRgX6G4PtaW8I94MWv5pexgil4zKIg" charset="UTF-8"></script><style>
   :root{
     --asphalt:#191c1f;
     --asphalt-2:#22262a;
@@ -49,13 +49,16 @@
   }
 
   .header-logo{
-    width:450px;
-    max-width:28vw;
-    min-width:300px;
+    /* Keep the logo at its natural aspect ratio. The divider and text
+       follow it automatically, so changing the logo dimensions never
+       requires manually adjusting their position. */
     height:82px;
+    width:auto;
+    max-width:42vw;
     object-fit:contain;
     object-position:left center;
     display:block;
+    flex:0 1 auto;
   }
 
   .header-divider{
@@ -63,7 +66,7 @@
     height:78px;
     background:var(--line-white);
     opacity:.95;
-    margin:0 14px 0 2px;
+    margin:0 14px 0 10px;
     border-radius:2px;
     flex:0 0 auto;
   }
@@ -101,7 +104,7 @@
 
   @media (max-width:900px){
     header{padding-left:18px;padding-right:18px;}
-    .header-logo{width:330px;min-width:220px;max-width:35vw;}
+    .header-logo{height:72px;max-width:42vw;}
     header h1{font-size:20px;}
     main{max-width:615px;padding-left:14px;padding-right:14px;}
   }
@@ -109,7 +112,7 @@
   @media (max-width:600px){
     header{min-height:82px;padding:6px 12px;}
     .header-brand{height:68px;}
-    .header-logo{width:145px;min-width:145px;max-width:none;height:58px;}
+    .header-logo{height:58px;max-width:42vw;}
     .header-divider{height:54px;width:3px;margin-right:9px;}
     header h1{font-size:15px;}
     header .sub{font-size:9px;}
@@ -264,6 +267,17 @@
     width:100%; padding:10px; margin-top:8px; border-radius:8px; border:1px solid var(--safety-red);
     background:transparent; color:var(--safety-red); font-weight:700; font-size:13px; cursor:pointer;
   }
+
+  .csv-km-note{
+    margin-top:12px;
+    padding:9px 11px;
+    border-left:3px solid var(--line-yellow);
+    color:#9aa8b5;
+    font-size:10px;
+    line-height:1.45;
+    font-family:var(--mono);
+  }
+  .csv-km-note code{color:var(--line-white);}
 </style>
 </head>
 <body>
@@ -303,9 +317,9 @@
   </div>
 
   <div class="kmpost">
-    <div class="kmlabel">CURRENT KM STATION</div>
-    <div class="kmvalue" id="km-value">--.---</div>
-    <div class="kmunit">kilometers (interpolated)</div>
+    <div class="kmlabel" id="km-label">CURRENT KM STATION</div>
+    <div class="kmvalue" id="km-value">--</div>
+    <div class="kmunit" id="km-unit">kilometers (interpolated)</div>
     <div class="segment-tag" id="segment-tag">--</div>
   </div>
 
@@ -350,7 +364,11 @@
     <div id="log-list"><div class="log-empty">No defects logged yet</div></div>
   </section>
 
-  <button class="export-btn" id="export-btn" disabled>⬇ Export CSV</button>
+  <div class="csv-km-note">
+  CSV KM Station is exported as a numeric value in meters (e.g. <b>16300</b> = <b>16+300</b>).
+  In Excel, use custom number format <code>0"+"000</code> to display it as 16+300.
+</div>
+<button class="export-btn" id="export-btn" disabled>⬇ Export CSV</button>
   <button class="clear-btn" id="clear-btn">Clear all entries</button>
 
 </main>
@@ -550,6 +568,21 @@ function computeKmStation(lat, lon){
   return { km, expressway: best.e, bound: best.b, distance: bestDist };
 }
 
+function formatKmStation(km){
+  if(km === null || km === undefined || !Number.isFinite(km)) return '';
+
+  let wholeKm = Math.floor(km);
+  let meters = Math.round((km - wholeKm) * 1000);
+
+  // Carry over if rounding produces exactly 1000 m.
+  if(meters >= 1000){
+    wholeKm += 1;
+    meters = 0;
+  }
+
+  return `${wholeKm}+${String(meters).padStart(3,'0')}`;
+}
+
 function updateReadout(){
   if(!currentPos) return;
   document.getElementById('lat').textContent = currentPos.lat.toFixed(6);
@@ -558,21 +591,33 @@ function updateReadout(){
 
   const result = computeKmStation(currentPos.lat, currentPos.lon);
   const kmEl = document.getElementById('km-value');
+  const kmLabelEl = document.getElementById('km-label');
+  const kmUnitEl = document.getElementById('km-unit');
   const tagEl = document.getElementById('segment-tag');
 
   if(!result){
-    kmEl.textContent = '--.---';
+    kmLabelEl.textContent = 'CURRENT KM STATION';
+    kmEl.textContent = '';
+    kmUnitEl.style.display = 'none';
     tagEl.textContent = calibData.length ? '--' : 'dataset not loaded';
     tagEl.classList.remove('faroff');
     return;
   }
 
-  kmEl.textContent = result.km.toFixed(3);
   const displayBound = userBound || '?';
+
   if(result.distance > OFF_NETWORK_KM){
+    // Do not display a KM station when the GPS position is outside the
+    // mapped network tolerance; the interpolated value could be misleading.
+    kmLabelEl.textContent = 'NETWORK STATUS';
+    kmEl.textContent = '';
+    kmUnitEl.style.display = 'none';
     tagEl.textContent = `⚠ Off mapped network (~${Math.round(result.distance*1000)}m from ${result.expressway})`;
     tagEl.classList.add('faroff');
   } else {
+    kmLabelEl.textContent = 'CURRENT KM STATION';
+    kmEl.textContent = formatKmStation(result.km);
+    kmUnitEl.style.display = '';
     tagEl.textContent = `${result.expressway} · ${displayBound}`;
     tagEl.classList.remove('faroff');
   }
@@ -660,14 +705,15 @@ function logDefect(type){
     return;
   }
   const result = computeKmStation(currentPos.lat, currentPos.lon);
+  const onMappedNetwork = result && result.distance <= OFF_NETWORK_KM;
   entries.push({
     type,
     timestamp: fullTimestamp(),
     lat: currentPos.lat,
     lon: currentPos.lon,
-    km: result ? result.km : null,
-    expressway: result ? result.expressway : '',
-    bound: userBound || '',
+    km: onMappedNetwork ? result.km : null,
+    expressway: onMappedNetwork ? result.expressway : '',
+    bound: onMappedNetwork ? (userBound || '') : '',
     lane: ''
   });
   saveEntries();
@@ -761,7 +807,7 @@ function renderLog(){
 
     const meta = document.createElement('div');
     meta.className = 'meta';
-    const kmText = entry.km !== null && entry.km !== undefined ? entry.km.toFixed(3) : 'n/a';
+    const kmText = entry.km !== null && entry.km !== undefined ? formatKmStation(entry.km) : 'n/a';
     const corridor = entry.expressway ? ` · ${entry.expressway}${entry.bound ? ' '+entry.bound : ''}` : '';
     meta.innerHTML = `${entry.timestamp}<br>${entry.lat.toFixed(6)}, ${entry.lon.toFixed(6)} · km ${kmText}${corridor}`;
 
@@ -814,7 +860,7 @@ document.getElementById('export-btn').addEventListener('click', () => {
     e.expressway || '',
     e.bound || '',
     e.lane || '',
-    e.km !== null && e.km !== undefined ? e.km.toFixed(3) : ''
+    e.km !== null && e.km !== undefined ? Math.round(Number(e.km) * 1000) : ''
   ]);
   const csv = [header, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
