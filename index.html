@@ -99,11 +99,6 @@
   }
   button.bound-btn.active{background:var(--line-yellow); color:#191c1f; border-color:var(--line-yellow);}
 
-  .lane-input{
-    width:100%; padding:12px; margin-bottom:10px; border-radius:8px; border:1px solid #3a4046;
-    background:var(--panel); color:var(--line-white); font-size:14px;
-  }
-
   section.block{margin-top:22px;}
   h2{font-size:13px; text-transform:uppercase; letter-spacing:1.2px; color:#9aa0a6; margin:0 0 10px;}
 
@@ -311,7 +306,6 @@ let currentExpressway = null; // last detected corridor, used to know which boun
 const STORAGE_KEY_ENTRIES = 'nlex_inspection_entries_v1';
 const STORAGE_KEY_DATASET = 'nlex_network_dataset_v1';
 const STORAGE_KEY_BOUND = 'nlex_user_bound_v1';
-const STORAGE_KEY_LANE = 'nlex_last_lane_v1';
 let storageAvailable = true;
 
 function testStorageWritable(){
@@ -359,12 +353,6 @@ window.addEventListener('DOMContentLoaded', () => {
       : 'on-device storage ready — entries will be saved automatically';
   } else {
     el.textContent = '⚠ On-device storage is blocked in this tab (likely Private Browsing) — entries will NOT be saved. Use a normal Safari tab, or export after every session.';
-  }
-  if(storageAvailable){
-    try{
-      const savedLane = localStorage.getItem(STORAGE_KEY_LANE);
-      if(savedLane) document.getElementById('lane-input').value = savedLane;
-    }catch(e){ /* non-critical */ }
   }
 });
 
@@ -786,6 +774,13 @@ document.addEventListener('pointercancel', (e) => {
   if (!btn) return;
   btn.classList.remove('is-pressed');
 }, {passive: true});
+
+// ---------- Service worker: makes the app shell load with zero network ----------
+if('serviceWorker' in navigator){
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(err => console.error('Service worker registration failed', err));
+  });
+}
 
 </script>
 
