@@ -189,6 +189,25 @@ header{display:flex;align-items:center;gap:12px;}
 .modal-actions{display:flex;gap:8px;margin-top:12px}.modal-actions button{flex:1;padding:10px;border-radius:8px;border:0;font-weight:700}.lane-save{background:#1d78b5;color:#fff}.lane-cancel{background:#263541;color:#d9e1e8}
 .lane-edit{border:0;background:transparent;color:#65b8ee;padding:0;font:inherit;text-decoration:underline;cursor:pointer;}
 
+
+/* Fast Road Trace button press feedback */
+.defect-btn {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  transition: transform 90ms ease, filter 90ms ease, box-shadow 90ms ease;
+  will-change: transform;
+}
+.defect-btn:active,
+.defect-btn.is-pressed {
+  transform: scale(0.965);
+  filter: brightness(0.88);
+  box-shadow: inset 0 3px 8px rgba(0,0,0,.18);
+}
+button {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
 </style>
 </head>
 <body>
@@ -747,6 +766,27 @@ document.getElementById('export-btn').addEventListener('click', () => {
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 });
+
+/* Visual + tactile press feedback for quick defect buttons */
+document.addEventListener('pointerdown', (e) => {
+  const btn = e.target.closest('.defect-btn');
+  if (!btn) return;
+  btn.classList.add('is-pressed');
+  if (typeof quickHaptic === 'function') quickHaptic();
+}, {passive: true});
+
+document.addEventListener('pointerup', (e) => {
+  const btn = e.target.closest('.defect-btn');
+  if (!btn) return;
+  btn.classList.remove('is-pressed');
+}, {passive: true});
+
+document.addEventListener('pointercancel', (e) => {
+  const btn = e.target.closest('.defect-btn');
+  if (!btn) return;
+  btn.classList.remove('is-pressed');
+}, {passive: true});
+
 </script>
 
 
