@@ -1,11 +1,11 @@
-// Road Trace — service worker
+// Chainage — service worker
 // Caches the app shell (HTML, icons, logo) so the app itself opens with
 // zero network. calibration.json is handled separately (network-first)
 // since the app already manages its own offline copy of that file and
 // the in-app "Reload dataset" button needs a real network attempt.
 
-const CACHE_VERSION = 'v1'; // bump this string whenever you deploy changes, to force an update
-const CACHE_NAME = `roadtrace-shell-${CACHE_VERSION}`;
+const CACHE_VERSION = 'v2'; // bump this string whenever you deploy changes, to force an update
+const CACHE_NAME = `chainage-shell-${CACHE_VERSION}`;
 
 const APP_SHELL = [
   './',
