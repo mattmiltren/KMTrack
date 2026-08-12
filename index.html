@@ -9,7 +9,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="mobile-web-app-capable" content="yes">
 <link rel="apple-touch-icon" href="KMTrack_logo.png">
-<title>Road Inspection Log</title>
+<link rel="manifest" href="manifest.json">
+<title>KMTrack — Road Inspection Log</title>
 <style>
   :root{
     --asphalt:#191c1f;
@@ -96,11 +97,40 @@
   }
   button.bound-btn.active{background:var(--line-yellow); color:#191c1f; border-color:var(--line-yellow);}
 
+  /* Offline schematic — draws the current corridor from calibData points
+     (no network, no map tiles) with a dot showing live GPS position on it. */
+  .schematic-block{margin-top:12px; background:var(--panel); border:1px solid #3a4046; border-radius:10px; padding:10px 14px;}
+  .schematic-label{font-size:11px; color:#9aa0a6; margin-bottom:6px;}
+  .schematic-sub{color:var(--line-white); font-weight:700;}
+  #schematic-svg{width:100%; height:auto; display:block; background:#14181c; border-radius:6px; aspect-ratio:300/150;}
+  .schematic-path{fill:none; stroke:#3a566a; stroke-width:3; stroke-linecap:round; stroke-linejoin:round;}
+  .schematic-dot{fill:var(--safety-green); stroke:#fff; stroke-width:2;}
+  .schematic-dot.faroff{fill:var(--safety-red);}
+  .schematic-empty{fill:#565c62; font-size:10px;}
+
   section.block{margin-top:22px;}
   h2{font-size:13px; text-transform:uppercase; letter-spacing:1.2px; color:#9aa0a6; margin:0 0 10px;}
 
   /* Defect buttons */
   .defect-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+
+  .defect-category{margin-bottom:14px;}
+  .category-label{font-size:13px; font-weight:700; letter-spacing:0.5px; margin-bottom:6px; color:var(--line-white);}
+  .category-label .category-sub{font-size:10px; font-weight:400; color:#9aa0a6; display:block; margin-top:1px; letter-spacing:0;}
+  .lane-btn-row{display:grid; grid-template-columns:repeat(5,1fr); gap:5px;}
+  .lane-btn{
+    position:relative; display:flex; align-items:center; justify-content:center; text-align:center;
+    padding:12px 2px; border-radius:8px; border:none; font-weight:700; font-size:15px;
+    cursor:pointer; -webkit-tap-highlight-color:transparent; transition:transform 0.08s ease;
+  }
+  .lane-btn:active{transform:scale(0.94);}
+  .lane-btn input.lane-log-trigger{position:absolute; inset:0; opacity:0; margin:0; padding:0; cursor:pointer;}
+  .lane-btn.others-btn{flex-direction:column; font-size:9px; line-height:1.25; padding:6px 3px;}
+  .lane-btn.others-btn .others-sub{font-weight:400; font-size:8px; margin-top:2px;}
+  .lane-btn.pothole{background:var(--line-yellow); color:#191c1f;}
+  .lane-btn.shoving{background:var(--safety-orange); color:var(--line-white);}
+  .lane-btn.cracks{background:#c9c9c9; color:#191c1f;}
+  .lane-btn.other{background:#c1707a; color:#191c1f;}
   button.defect-btn{
     padding:20px 10px;
     font-size:15px;
@@ -128,6 +158,23 @@
     font-weight:700; cursor:pointer;
   }
 
+  /* Checkbox-backed labels: a real native checkbox sits invisibly over the
+     whole button so tapping it triggers iOS's built-in switch-toggle haptic.
+     Requires the `switch` attribute on the <input> (WebKit's native switch
+     control, Safari 17.4+) — a plain checkbox does NOT get the haptic tick.
+     Safari has no navigator.vibrate support, so this is the only way to get
+     a tactile tick from a web page on iOS 18+. Harmless on other platforms —
+     unsupported browsers just render it as a normal (invisible) checkbox. */
+  .haptic-label{position:relative;}
+  .haptic-label input.haptic-trigger{
+    position:absolute; inset:0; opacity:0; margin:0; padding:0; cursor:pointer;
+  }
+  .custom-log-btn{
+    position:relative; display:flex; align-items:center; justify-content:center;
+    padding:10px 14px; border-radius:8px; border:none; background:#565c62; color:var(--line-white);
+    font-weight:700; cursor:pointer; -webkit-tap-highlight-color:transparent;
+  }
+
   /* Calibration panel */
   details.calib{background:var(--panel); border:1px solid #3a4046; border-radius:10px; padding:10px 14px;}
   details.calib summary{cursor:pointer; font-size:13px; font-weight:700; color:var(--line-yellow); list-style:none;}
@@ -140,10 +187,11 @@
   .log-entry{
     background:var(--panel); border-radius:8px; padding:10px 12px; margin-bottom:8px;
     display:flex; justify-content:space-between; align-items:center; gap:10px;
-    border-left:4px solid var(--line-yellow);
+    border-left:4px solid var(--line-yellow); cursor:pointer;
   }
   .log-entry.shoving{border-left-color:var(--safety-orange);}
   .log-entry.cracks{border-left-color:#c9c9c9;}
+  .log-entry.other{border-left-color:#c1707a;}
   .log-entry .info .type{font-weight:700; font-size:14px;}
   .log-entry .info .meta{font-family:var(--mono); font-size:11px; color:#9aa0a6; margin-top:3px; line-height:1.5;}
   .log-entry .del{background:none; border:none; color:#c1392b; font-size:18px; cursor:pointer; padding:4px 8px;}
@@ -178,15 +226,18 @@ header{display:flex;align-items:center;gap:12px;}
 .lane-modal{width:min(360px,100%);background:#101820;border:1px solid #334b5c;border-radius:12px;padding:16px;box-shadow:0 16px 50px rgba(0,0,0,.45);}
 .lane-modal h3{margin:0 0 12px;font-size:16px;}
 .lane-modal input{width:100%;box-sizing:border-box;padding:11px;border-radius:8px;border:1px solid #3a566a;background:#08131d;color:#fff;font-size:16px;}
-.lane-quick-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-bottom:12px;}
-.lane-quick-btn{
-  padding:14px 0; border-radius:8px; border:2px solid #3a566a; background:#1976c9; color:#fff;
-  font-size:17px; font-weight:700; cursor:pointer; -webkit-tap-highlight-color:transparent;
+.edit-field-label{display:block; font-size:12px; font-style:italic; color:#9aa0a6; margin:12px 0 6px;}
+.edit-field-label:first-of-type{margin-top:0;}
+.edit-select{
+  width:100%; box-sizing:border-box; padding:11px; border-radius:8px; border:1px solid #3a566a;
+  background:#08131d; color:#fff; font-size:16px; appearance:none; -webkit-appearance:none;
+  background-image:url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat:no-repeat; background-position:right 10px center; background-size:20px;
 }
-.lane-quick-btn.active{background:#1976c9; border-color:#8fd0ff; box-shadow:0 0 0 2px rgba(143,208,255,0.4) inset;}
-.lane-quick-grid input{grid-column:1 / -1; margin-top:2px;}
+.edit-others-input{margin-top:8px;}
 .modal-actions{display:flex;gap:8px;margin-top:12px}.modal-actions button{flex:1;padding:10px;border-radius:8px;border:0;font-weight:700}.lane-save{background:#1d78b5;color:#fff}.lane-cancel{background:#263541;color:#d9e1e8}
 .lane-edit{border:0;background:transparent;color:#65b8ee;padding:0;font:inherit;text-decoration:underline;cursor:pointer;}
+.lane-save.danger{background:var(--safety-red);}
 
 
 /* Fast KMTrack button press feedback */
@@ -259,6 +310,13 @@ button {
     </div>
   </div>
 
+  <div class="schematic-block">
+    <div class="schematic-label">Position on corridor — <span class="schematic-sub" id="schematic-corridor">--</span></div>
+    <svg id="schematic-svg" viewBox="0 0 300 150" preserveAspectRatio="xMidYMid meet">
+      <text x="150" y="78" text-anchor="middle" class="schematic-empty">waiting for GPS / dataset...</text>
+    </svg>
+  </div>
+
   <section class="block">
     <details class="calib">
       <summary>▸ Network calibration data</summary>
@@ -269,17 +327,51 @@ button {
 
   <section class="block">
     <h2>Log a defect</h2>
-    <p class="lane-help"></p>
-    <div class="defect-grid">
-      <button class="defect-btn pothole" data-type="Pothole">🕳️ Pothole</button>
-      <button class="defect-btn shoving" data-type="Shoving">〰️ Shoving</button>
-      <button class="defect-btn cracks" data-type="Cracks">⚡ Cracks</button>
-      <button class="defect-btn custom" id="custom-toggle">+ Other</button>
+
+    <div class="defect-category">
+      <div class="category-label">Potholes</div>
+      <div class="lane-btn-row">
+        <label class="lane-btn pothole haptic-label"><input type="checkbox" switch class="lane-log-trigger" data-defect="Potholes" data-lane="1">1</label>
+        <label class="lane-btn pothole haptic-label"><input type="checkbox" switch class="lane-log-trigger" data-defect="Potholes" data-lane="2">2</label>
+        <label class="lane-btn pothole haptic-label"><input type="checkbox" switch class="lane-log-trigger" data-defect="Potholes" data-lane="3">3</label>
+        <label class="lane-btn pothole haptic-label"><input type="checkbox" switch class="lane-log-trigger" data-defect="Potholes" data-lane="4">4</label>
+        <label class="lane-btn pothole others-btn haptic-label"><input type="checkbox" switch class="lane-log-trigger" data-defect="Potholes" data-lane="Others">Others<span class="others-sub">(i.e., Shoulder/acce/dece/etc.)</span></label>
+      </div>
     </div>
-    <div class="add-custom" id="custom-input-row" style="display:none;">
-      <input type="text" id="custom-type" placeholder="Defect type (e.g. Rutting)">
-      <button id="custom-log">Log</button>
+
+    <div class="defect-category">
+      <div class="category-label">Shoving</div>
+      <div class="lane-btn-row">
+        <label class="lane-btn shoving haptic-label"><input type="checkbox" switch class="lane-log-trigger" data-defect="Shoving" data-lane="1">1</label>
+        <label class="lane-btn shoving haptic-label"><input type="checkbox" switch class="lane-log-trigger" data-defect="Shoving" data-lane="2">2</label>
+        <label class="lane-btn shoving haptic-label"><input type="checkbox" switch class="lane-log-trigger" data-defect="Shoving" data-lane="3">3</label>
+        <label class="lane-btn shoving haptic-label"><input type="checkbox" switch class="lane-log-trigger" data-defect="Shoving" data-lane="4">4</label>
+        <label class="lane-btn shoving others-btn haptic-label"><input type="checkbox" switch class="lane-log-trigger" data-defect="Shoving" data-lane="Others">Others<span class="others-sub">(i.e., Shoulder/acce/dece/etc.)</span></label>
+      </div>
     </div>
+
+    <div class="defect-category">
+      <div class="category-label">Cracks</div>
+      <div class="lane-btn-row">
+        <label class="lane-btn cracks haptic-label"><input type="checkbox" switch class="lane-log-trigger" data-defect="Cracks (width>25 mm)" data-lane="1">1</label>
+        <label class="lane-btn cracks haptic-label"><input type="checkbox" switch class="lane-log-trigger" data-defect="Cracks (width>25 mm)" data-lane="2">2</label>
+        <label class="lane-btn cracks haptic-label"><input type="checkbox" switch class="lane-log-trigger" data-defect="Cracks (width>25 mm)" data-lane="3">3</label>
+        <label class="lane-btn cracks haptic-label"><input type="checkbox" switch class="lane-log-trigger" data-defect="Cracks (width>25 mm)" data-lane="4">4</label>
+        <label class="lane-btn cracks others-btn haptic-label"><input type="checkbox" switch class="lane-log-trigger" data-defect="Cracks (width>25 mm)" data-lane="Others">Others<span class="others-sub">(i.e., Shoulder/acce/dece/etc.)</span></label>
+      </div>
+    </div>
+
+    <div class="defect-category">
+      <div class="category-label">Others <span class="category-sub">(i.e., Damaged markings, Ravelling, Debris)</span></div>
+      <div class="lane-btn-row">
+        <label class="lane-btn other haptic-label"><input type="checkbox" switch class="lane-log-trigger" data-defect="Others" data-lane="1">1</label>
+        <label class="lane-btn other haptic-label"><input type="checkbox" switch class="lane-log-trigger" data-defect="Others" data-lane="2">2</label>
+        <label class="lane-btn other haptic-label"><input type="checkbox" switch class="lane-log-trigger" data-defect="Others" data-lane="3">3</label>
+        <label class="lane-btn other haptic-label"><input type="checkbox" switch class="lane-log-trigger" data-defect="Others" data-lane="4">4</label>
+        <label class="lane-btn other others-btn haptic-label"><input type="checkbox" switch class="lane-log-trigger" data-defect="Others" data-lane="Others">Others<span class="others-sub">(i.e., Shoulder/acce/dece/etc.)</span></label>
+      </div>
+    </div>
+
   </section>
 
   <div class="lane-divider"></div>
@@ -355,12 +447,29 @@ window.addEventListener('DOMContentLoaded', () => {
     el.textContent = entries.length
       ? `${entries.length} entries saved on this device`
       : 'on-device storage ready — entries will be saved automatically';
+    const isIOS = /iP(hone|od|ad)/.test(navigator.userAgent);
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+    if(isIOS && !isStandalone){
+      el.textContent += ' — for more reliable storage across days, add this to your Home Screen instead of using it as a Safari tab.';
+    }
   } else {
     el.textContent = '⚠ On-device storage is blocked in this tab (likely Private Browsing) — entries will NOT be saved. Use a normal Safari tab, or export after every session.';
   }
 });
 
 // ---------- Network calibration dataset (NLEX chainage-to-coordinates) ----------
+// Guards against a structurally-valid-but-incomplete dataset (e.g. a point
+// missing lat/lon/k) silently producing NaN km values with no visible error.
+function sanitizeCalibData(raw){
+  if(!Array.isArray(raw)) return [];
+  const clean = raw.filter(p => p && typeof p.e === 'string' && typeof p.b === 'string'
+    && Number.isFinite(p.k) && Number.isFinite(p.lat) && Number.isFinite(p.lon));
+  if(clean.length !== raw.length){
+    console.warn(`Calibration dataset: dropped ${raw.length - clean.length} malformed point(s).`);
+  }
+  return clean;
+}
+
 function buildExpresswayBoundsMap(){
   expresswayBounds = {};
   for(const p of calibData){
@@ -378,7 +487,7 @@ async function loadCalibrationDataset(forceNetwork){
     if(!forceNetwork){
       const cached = localStorage.getItem(STORAGE_KEY_DATASET);
       if(cached){
-        calibData = JSON.parse(cached);
+        calibData = sanitizeCalibData(JSON.parse(cached));
         buildExpresswayBoundsMap();
         buildSpatialIndex();
         statusEl.textContent = `Loaded ${calibData.length.toLocaleString()} points from on-device cache (works offline).`;
@@ -389,7 +498,7 @@ async function loadCalibrationDataset(forceNetwork){
     const res = await fetch('calibration.json', { cache: 'no-store' });
     if(!res.ok) throw new Error('HTTP ' + res.status);
     const text = await res.text();
-    calibData = JSON.parse(text);
+    calibData = sanitizeCalibData(JSON.parse(text));
     buildExpresswayBoundsMap();
     buildSpatialIndex();
     try{ localStorage.setItem(STORAGE_KEY_DATASET, text); }catch(e){ /* dataset too big for storage quota; still usable this session */ }
@@ -402,6 +511,13 @@ async function loadCalibrationDataset(forceNetwork){
 }
 document.getElementById('calib-reload').addEventListener('click', () => loadCalibrationDataset(true));
 loadCalibrationDataset(false);
+
+// If the app opened with no signal and the dataset never loaded, retry
+// automatically the moment the device comes back online, instead of
+// requiring the user to notice and tap "Reload dataset" themselves.
+window.addEventListener('online', () => {
+  if(!calibData.length) loadCalibrationDataset(true);
+});
 
 // ---------- Clock ----------
 function tickClock(){
@@ -428,6 +544,16 @@ function haversineKm(lat1, lon1, lat2, lon2){
 // Threshold beyond which we flag the reading as "off the mapped network"
 // (e.g. GPS drift, a service road, or a stretch not covered by the dataset).
 const OFF_NETWORK_KM = 0.15;
+
+// Widens that threshold when the current GPS fix has poor accuracy (common
+// under overpasses/flyovers or between tall structures), so a genuinely
+// on-network position isn't misflagged just because of a large accuracy
+// circle. Capped so a very poor fix can't mask a real off-network event.
+function offNetworkThresholdKm(accuracyMeters){
+  if(!accuracyMeters || !Number.isFinite(accuracyMeters)) return OFF_NETWORK_KM;
+  const bufferKm = Math.min(accuracyMeters, 200) / 1000;
+  return Math.min(OFF_NETWORK_KM + bufferKm, 0.35);
+}
 
 const GRID_SIZE = 0.0025; // ~250 m latitude cells
 let spatialGrid = new Map();
@@ -498,6 +624,82 @@ function kmToCsvNumber(km){
   return Math.round(Number(km)*1000);
 }
 
+// ---------- Offline schematic (no map tiles — draws the corridor straight
+// from calibData points, so it works with zero signal, same as the rest
+// of this app) ----------
+function makeProjector(points, viewW, viewH, pad){
+  const lats = points.map(p => p.lat);
+  const lons = points.map(p => p.lon);
+  const latMin = Math.min(...lats), latMax = Math.max(...lats);
+  const lonMin = Math.min(...lons), lonMax = Math.max(...lons);
+  // Shrink east-west distances by cos(latitude) so the shape isn't stretched
+  // — a flat local approximation, which is fine over a single corridor's span.
+  const lonScale = Math.cos((latMin + latMax) / 2 * Math.PI / 180) || 1;
+  const projW = (lonMax - lonMin) * lonScale;
+  const projH = (latMax - latMin);
+  const usableW = viewW - pad * 2, usableH = viewH - pad * 2;
+  const scale = Math.min(
+    projW > 0 ? usableW / projW : Infinity,
+    projH > 0 ? usableH / projH : Infinity
+  );
+  const s = Number.isFinite(scale) ? scale : 1;
+  const offsetX = pad + (usableW - projW * s) / 2;
+  const offsetY = pad + (usableH - projH * s) / 2;
+  return function(lat, lon){
+    return {
+      x: (lon - lonMin) * lonScale * s + offsetX,
+      y: (latMax - lat) * s + offsetY // north-up: higher latitude = smaller y
+    };
+  };
+}
+
+let schematicKey = null;
+let schematicProjector = null;
+
+function renderSchematic(result, isOffMappedNetwork){
+  const svg = document.getElementById('schematic-svg');
+  const corridorLabelEl = document.getElementById('schematic-corridor');
+
+  if(!result){
+    svg.innerHTML = '<text x="150" y="78" text-anchor="middle" class="schematic-empty">waiting for GPS / dataset...</text>';
+    corridorLabelEl.textContent = '--';
+    schematicKey = null;
+    schematicProjector = null;
+    return;
+  }
+
+  corridorLabelEl.textContent = `${result.expressway} ${result.bound}`;
+  const key = corridorKey(result.expressway, result.bound);
+
+  if(key !== schematicKey){
+    schematicKey = key;
+    const idxs = (corridorIndex.get(key) || []).slice().sort((a, b) => calibData[a].k - calibData[b].k);
+    if(idxs.length < 2){
+      svg.innerHTML = '<text x="150" y="78" text-anchor="middle" class="schematic-empty">not enough points to draw this segment</text>';
+      schematicProjector = null;
+      return;
+    }
+    const points = idxs.map(i => calibData[i]);
+    schematicProjector = makeProjector(points, 300, 150, 14);
+    const d = points.map((p, i) => {
+      const pt = schematicProjector(p.lat, p.lon);
+      return (i === 0 ? 'M' : 'L') + pt.x.toFixed(1) + ',' + pt.y.toFixed(1);
+    }).join(' ');
+    svg.innerHTML = `<path class="schematic-path" d="${d}"></path><circle class="schematic-dot" id="schematic-dot" r="5"></circle>`;
+  }
+
+  if(schematicProjector && currentPos){
+    const dot = document.getElementById('schematic-dot');
+    if(dot){
+      const pt = schematicProjector(currentPos.lat, currentPos.lon);
+      const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
+      dot.setAttribute('cx', clamp(pt.x, 4, 296).toFixed(1));
+      dot.setAttribute('cy', clamp(pt.y, 4, 146).toFixed(1));
+      dot.classList.toggle('faroff', isOffMappedNetwork);
+    }
+  }
+}
+
 function updateReadout(){
   if(!currentPos) return;
   document.getElementById('lat').textContent = currentPos.lat.toFixed(6);
@@ -512,10 +714,11 @@ function updateReadout(){
     kmEl.textContent = '--.---';
     tagEl.textContent = calibData.length ? '--' : 'dataset not loaded';
     tagEl.classList.remove('faroff');
+    renderSchematic(null);
     return;
   }
 
-  const isOffMappedNetwork = result.distance > OFF_NETWORK_KM;
+  const isOffMappedNetwork = result.distance > offNetworkThresholdKm(currentPos.acc);
   kmEl.textContent = isOffMappedNetwork ? '--.---' : formatKmStation(result.km);
   const displayBound = userBound || '?';
   if(isOffMappedNetwork){
@@ -527,6 +730,7 @@ function updateReadout(){
   }
 
   renderBoundToggle(result.expressway);
+  renderSchematic(result, isOffMappedNetwork);
 }
 
 // ---------- Direction (bound) toggle — manual, since NB/SB coordinates are identical in this dataset ----------
@@ -551,6 +755,13 @@ function renderBoundToggle(expressway){
     return;
   }
   currentExpressway = expressway;
+  // The direction picked on the previous corridor may not be a valid
+  // option here (e.g. it was "NB" on NLEX and the vehicle just entered a
+  // ramp with only EB/WB) — don't let it silently attach to this corridor.
+  if(userBound && !options.includes(userBound)){
+    userBound = null;
+    saveBound();
+  }
   wrap.innerHTML = '';
   options.forEach(opt => {
     const btn = document.createElement('button');
@@ -593,7 +804,8 @@ function fullTimestamp(){
   return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
 }
 
-function logDefect(type){
+function logDefect(type, lane){
+  lane = lane || '';
   if(!currentPos){
     alert('Waiting for GPS fix — please allow location access and wait a moment.');
     return;
@@ -604,8 +816,7 @@ function logDefect(type){
   // Use the exact same off-network rule as the live KM display.
   // If the vehicle is off the mapped network, do NOT save the nearest
   // calibration point's KM, expressway, or bound into the defect entry.
-  const isOffMappedNetwork = !result || result.distance > OFF_NETWORK_KM;
-  const lane = '';
+  const isOffMappedNetwork = !result || result.distance > offNetworkThresholdKm(currentPos.acc);
 
   entries.push({
     type,
@@ -622,28 +833,42 @@ function logDefect(type){
   renderLog();
 }
 
-function quickHaptic(){ if(navigator.vibrate) navigator.vibrate(10); }
-document.querySelectorAll('.defect-btn[data-type]').forEach(btn => {
-  btn.addEventListener('click', () => { quickHaptic(); logDefect(btn.dataset.type); });
-});
+// ---------- Sound feedback ----------
+// Synthesized entirely with Web Audio — no audio file to host or cache.
+// iOS requires the AudioContext to be created/resumed inside a real user
+// gesture, which every one of these taps already is (a genuine checkbox
+// toggle), so this satisfies that requirement automatically.
+// Note: this is silenced by the iPhone's physical mute switch — Safari has
+// no way to override that (only native apps can request that override).
+let audioCtx = null;
+function playConfirmSound(){
+  try{
+    if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if(audioCtx.state === 'suspended') audioCtx.resume();
 
-document.getElementById('custom-toggle').addEventListener('click', () => {
-  const row = document.getElementById('custom-input-row');
-  row.style.display = row.style.display === 'none' ? 'flex' : 'none';
-});
-document.getElementById('custom-log').addEventListener('click', () => {
-  const val = document.getElementById('custom-type').value.trim();
-  if(!val) return;
-  logDefect(val);
-  document.getElementById('custom-type').value = '';
-});
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(880, audioCtx.currentTime);
+    gain.gain.setValueAtTime(0.0001, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.25, audioCtx.currentTime + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.14);
+    osc.connect(gain).connect(audioCtx.destination);
+    osc.start();
+    osc.stop(audioCtx.currentTime + 0.15);
+  }catch(e){ /* Web Audio unavailable — fail silently, logging still works */ }
+}
 
 function typeClass(type){
-  const t = type.toLowerCase();
+  const t = (type || '').toLowerCase();
   if(t === 'shoving') return 'shoving';
-  if(t === 'cracks') return 'cracks';
-  return '';
+  if(t.startsWith('cracks')) return 'cracks';
+  if(t === 'others' || t === 'other') return 'other';
+  return ''; // Potholes and any other specific defect picked from the edit dropdown fall back to the default yellow accent
 }
+
+// ---------- Delete-entry confirmation (native confirm() — confirmed
+// working once the app is installed to the Home Screen) ----------
 
 function renderLog(){
   const list = document.getElementById('log-list');
@@ -664,10 +889,11 @@ function renderLog(){
     const realIdx = entries.indexOf(e);
     const div = document.createElement('div');
     div.className = 'log-entry ' + typeClass(e.type);
+    div.dataset.idx = realIdx;
     div.innerHTML = `
       <div class="info">
         <div class="type">${e.type}</div>
-        <div class="meta">${e.timestamp}<br>${e.lat.toFixed(6)}, ${e.lon.toFixed(6)} · km ${e.km !== null && e.km !== undefined ? formatKmStation(e.km) : 'n/a'}${e.expressway ? ` · ${e.expressway}${e.bound ? ' '+e.bound : ''}` : ''} · <button class="lane-edit" data-index="${realIdx}">Lane: ${e.lane || '—'}</button></div>
+        <div class="meta">${e.timestamp}<br>${e.lat.toFixed(6)}, ${e.lon.toFixed(6)} · km ${e.km !== null && e.km !== undefined ? formatKmStation(e.km) : 'n/a'}${e.expressway ? ` · ${e.expressway}${e.bound ? ' '+e.bound : ''}` : ''}${e.lane ? ` · Lane: ${e.lane}` : ' · Lane: —'}</div>
       </div>
       <button class="del" data-idx="${realIdx}">✕</button>
     `;
@@ -675,13 +901,24 @@ function renderLog(){
   });
   list.querySelectorAll('.del').forEach(btn => {
     btn.addEventListener('click', (e) => {
-      entries.splice(+e.target.dataset.idx, 1);
+      e.stopPropagation();
+      const idx = +e.currentTarget.dataset.idx;
+      const entry = entries[idx];
+      if(!entry) return;
+      if(!confirm(`Delete this entry?\n\n${entry.type}${entry.lane ? ' · Lane: '+entry.lane : ''}\n${entry.timestamp}`)) return;
+      entries.splice(idx, 1);
       saveEntries();
       renderLog();
     });
   });
 }
 renderLog();
+
+document.addEventListener('click', (e) => {
+  if(e.target.closest('.del')) return;
+  const card = e.target.closest('.log-entry');
+  if(card && card.dataset.idx !== undefined) openEditModal(Number(card.dataset.idx));
+});
 
 document.getElementById('clear-btn').addEventListener('click', () => {
   if(entries.length === 0) return;
@@ -693,62 +930,112 @@ document.getElementById('clear-btn').addEventListener('click', () => {
 });
 
 
-let editingEntryIndex=null;
-function setActiveLaneBtn(value){
-  document.querySelectorAll('.lane-quick-btn').forEach(b => {
-    b.classList.toggle('active', b.dataset.lane === value);
+// ---------- Quick lane-log buttons (the 16 number buttons + 4 "Others", all haptic-backed checkboxes) ----------
+document.querySelectorAll('.lane-log-trigger').forEach(cb => {
+  cb.addEventListener('change', () => {
+    playConfirmSound();
+    logDefect(cb.dataset.defect, cb.dataset.lane);
   });
+});
+
+// ---------- Combined Defect + Lane edit modal (opens when tapping any log entry) ----------
+const DEFECT_OPTIONS = [
+  'Dirt, rock, sand, debris',
+  'Large Hazardous debris/carcass',
+  'Cracks (width>25 mm)',
+  'Potholes',
+  'Patch with cracks',
+  'Rutting',
+  'Ravelling',
+  'Loose Pavement Edges',
+  'Height of shoulder vs pavement',
+  'Paved shoulders',
+  'Missing/Damaged pavement marking',
+  'Others'
+];
+const LANE_PRESETS = ['1','2','3','4','Acce','Dece','Shoulder','Interchange','Ramp','Others'];
+
+let editingEntryIndex = null;
+
+function populateDefectSelect(currentValue){
+  const sel = document.getElementById('edit-defect-select');
+  sel.innerHTML = '';
+  let matched = false;
+  DEFECT_OPTIONS.forEach(opt => {
+    const o = document.createElement('option');
+    o.value = opt; o.textContent = opt;
+    if(opt === currentValue){ o.selected = true; matched = true; }
+    sel.appendChild(o);
+  });
+  // If the entry's current type doesn't match any preset (e.g. it was logged
+  // as "Shoving", which isn't in this list), keep the original value visible
+  // and selected instead of silently switching it to something else.
+  if(!matched && currentValue){
+    const o = document.createElement('option');
+    o.value = currentValue; o.textContent = currentValue;
+    o.selected = true;
+    sel.insertBefore(o, sel.firstChild);
+  }
 }
-function openLaneEditor(index){
-  editingEntryIndex=index;
-  const modal=document.getElementById('lane-modal');
-  const input=document.getElementById('lane-modal-input');
-  const current = entries[index]?.lane || '';
-  input.value=current;
-  setActiveLaneBtn(current);
+
+function populateLaneSelect(currentValue){
+  const sel = document.getElementById('edit-lane-select');
+  const othersInput = document.getElementById('edit-lane-others-input');
+  sel.innerHTML = '';
+  LANE_PRESETS.forEach(opt => {
+    const o = document.createElement('option');
+    o.value = opt; o.textContent = opt;
+    sel.appendChild(o);
+  });
+  const isPreset = LANE_PRESETS.slice(0, -1).includes(currentValue);
+  if(isPreset){
+    sel.value = currentValue;
+    othersInput.style.display = 'none';
+    othersInput.value = '';
+  } else {
+    sel.value = 'Others';
+    othersInput.style.display = 'block';
+    othersInput.value = currentValue || '';
+  }
+}
+
+function openEditModal(index){
+  editingEntryIndex = index;
+  const entry = entries[index];
+  if(!entry) return;
+  populateDefectSelect(entry.type);
+  populateLaneSelect(entry.lane || '');
+  const modal = document.getElementById('edit-modal');
   modal.classList.add('open'); modal.setAttribute('aria-hidden','false');
-  setTimeout(()=>{input.focus();input.select();},50);
 }
-function closeLaneEditor(){
-  const modal=document.getElementById('lane-modal');
-  modal.classList.remove('open'); modal.setAttribute('aria-hidden','true'); editingEntryIndex=null;
+function closeEditModal(){
+  const modal = document.getElementById('edit-modal');
+  modal.classList.remove('open'); modal.setAttribute('aria-hidden','true');
+  editingEntryIndex = null;
 }
-document.addEventListener('click',e=>{const b=e.target.closest('.lane-edit');if(b)openLaneEditor(Number(b.dataset.index));});
-// The modal markup is placed after the main script, so bind its controls
-// after the document has finished parsing. This prevents Safari/iOS from
-// hitting null elements and leaving Save/Cancel unbound.
+
+// The modal markup sits after the main script, so bind everything after the
+// document has finished parsing — this prevents Safari/iOS from hitting
+// null elements and leaving Save/Cancel unbound.
 document.addEventListener('DOMContentLoaded', () => {
-  const laneCancel = document.getElementById('lane-cancel');
-  const laneSave = document.getElementById('lane-save');
-  const laneModal = document.getElementById('lane-modal');
-  const laneInput = document.getElementById('lane-modal-input');
-
-  document.querySelectorAll('.lane-quick-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      if(editingEntryIndex === null) return;
-      laneInput.value = btn.dataset.lane;
-      setActiveLaneBtn(btn.dataset.lane);
-      entries[editingEntryIndex].lane = btn.dataset.lane;
-      saveEntries();
-      renderLog();
-      closeLaneEditor();
-    });
+  document.getElementById('edit-lane-select').addEventListener('change', (e) => {
+    document.getElementById('edit-lane-others-input').style.display = e.target.value === 'Others' ? 'block' : 'none';
   });
-  laneInput?.addEventListener('input', () => setActiveLaneBtn(laneInput.value.trim()));
 
-  laneCancel?.addEventListener('click', closeLaneEditor);
-
-  laneSave?.addEventListener('click', () => {
-    if (editingEntryIndex === null) return;
-    entries[editingEntryIndex].lane =
-      document.getElementById('lane-modal-input').value.trim();
+  document.getElementById('edit-cancel').addEventListener('click', closeEditModal);
+  document.getElementById('edit-save').addEventListener('click', () => {
+    if(editingEntryIndex === null) return;
+    const defectVal = document.getElementById('edit-defect-select').value;
+    const laneSelVal = document.getElementById('edit-lane-select').value;
+    const laneOthersVal = document.getElementById('edit-lane-others-input').value.trim();
+    entries[editingEntryIndex].type = defectVal;
+    entries[editingEntryIndex].lane = laneSelVal === 'Others' ? laneOthersVal : laneSelVal;
     saveEntries();
     renderLog();
-    closeLaneEditor();
+    closeEditModal();
   });
-
-  laneModal?.addEventListener('click', e => {
-    if (e.target.id === 'lane-modal') closeLaneEditor();
+  document.getElementById('edit-modal').addEventListener('click', e => {
+    if(e.target.id === 'edit-modal') closeEditModal();
   });
 });
 
@@ -793,12 +1080,12 @@ document.getElementById('export-btn').addEventListener('click', () => {
   URL.revokeObjectURL(url);
 });
 
-/* Visual + tactile press feedback for quick defect buttons */
+/* Visual press feedback for quick defect buttons (the checkbox-backed
+   labels above handle the actual haptic tick natively on iOS) */
 document.addEventListener('pointerdown', (e) => {
   const btn = e.target.closest('.defect-btn');
   if (!btn) return;
   btn.classList.add('is-pressed');
-  if (typeof quickHaptic === 'function') quickHaptic();
 }, {passive: true});
 
 document.addEventListener('pointerup', (e) => {
@@ -823,18 +1110,18 @@ if('serviceWorker' in navigator){
 </script>
 
 
-<div id="lane-modal" class="modal-backdrop" aria-hidden="true">
-  <div class="lane-modal" role="dialog" aria-modal="true" aria-labelledby="lane-modal-title">
-    <h3 id="lane-modal-title">Edit Lane</h3>
-    <div class="lane-quick-grid" id="lane-quick-grid">
-      <button type="button" class="lane-quick-btn" data-lane="1">1</button>
-      <button type="button" class="lane-quick-btn" data-lane="2">2</button>
-      <button type="button" class="lane-quick-btn" data-lane="3">3</button>
-      <button type="button" class="lane-quick-btn" data-lane="4">4</button>
-      <input id="lane-modal-input" type="text" inputmode="text" autocomplete="off" placeholder="Others">
-    </div>
-    <div class="modal-actions"><button type="button" class="lane-cancel" id="lane-cancel">Cancel</button><button type="button" class="lane-save" id="lane-save">Save</button></div>
+<div id="edit-modal" class="modal-backdrop" aria-hidden="true">
+  <div class="lane-modal" role="dialog" aria-modal="true" aria-labelledby="edit-modal-title">
+    <h3 id="edit-modal-title">✎ Edit values</h3>
+    <label class="edit-field-label">Defect:</label>
+    <select id="edit-defect-select" class="edit-select"></select>
+    <label class="edit-field-label">Lane:</label>
+    <select id="edit-lane-select" class="edit-select"></select>
+    <input id="edit-lane-others-input" type="text" class="edit-others-input" placeholder="Specify lane" style="display:none;">
+    <div class="modal-actions"><button type="button" class="lane-cancel" id="edit-cancel">Cancel</button><button type="button" class="lane-save" id="edit-save">Save</button></div>
   </div>
 </div>
+
+
 </body>
 </html>
