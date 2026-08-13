@@ -321,6 +321,30 @@ button {
   .camera-hint{position:absolute;bottom:calc(env(safe-area-inset-bottom) + 24px);right:16px;color:#ddd;font-size:10px;font-family:var(--mono);z-index:4;}
   .camera-error{position:absolute;left:18px;right:18px;top:50%;transform:translateY(-50%);padding:14px;border-radius:10px;background:rgba(193,57,43,.88);color:#fff;font-size:13px;line-height:1.45;z-index:5;display:none;}
   .camera-error.show{display:block;}
+
+  /* Camera topbar controls (Close + custom-logo manager) */
+  .camera-topbar-actions{display:flex; align-items:center; gap:8px;}
+  .camera-logo-btn{background:rgba(0,0,0,.5);color:#fff;border:1px solid rgba(255,255,255,.35);border-radius:20px;padding:8px 12px;font-size:13px;display:flex;align-items:center;gap:5px;}
+  .camera-logo-btn .dot{width:6px;height:6px;border-radius:50%;background:var(--line-yellow);display:none;}
+  .camera-logo-btn.has-logo .dot{display:inline-block;}
+
+  /* Logo manager modal — reuses .modal-backdrop/.lane-modal, adds its own bits */
+  .logo-preview-box{
+    width:100%; min-height:100px; border:1px dashed #3a566a; border-radius:10px; background:#08131d;
+    display:flex; align-items:center; justify-content:center; padding:14px; margin-bottom:12px;
+  }
+  .logo-preview-box img{max-width:100%; max-height:90px; object-fit:contain;}
+  .logo-preview-box .logo-empty{color:#5c6b76; font-size:12px; text-align:center; line-height:1.5;}
+  .logo-upload-label{
+    display:block; width:100%; box-sizing:border-box; text-align:center; padding:11px;
+    border-radius:8px; border:1px solid #3a566a; background:#1d78b5; color:#fff; font-weight:700;
+    font-size:14px; cursor:pointer; -webkit-tap-highlight-color:transparent;
+  }
+  .logo-remove-btn{
+    width:100%; margin-top:8px; padding:10px; border-radius:8px; border:1px solid var(--safety-red);
+    background:transparent; color:#ef8d83; font-weight:700; font-size:13px; cursor:pointer;
+  }
+  .logo-hint{font-size:11px; color:#9aa0a6; margin-top:10px; line-height:1.5;}
   .photo-modal{align-items:center;justify-content:center;padding:18px;background:rgba(0,0,0,.92);}
   .photo-card{width:min(920px,100%);max-height:100%;display:flex;flex-direction:column;gap:10px;}
   #photo-preview{max-width:100%;max-height:78vh;object-fit:contain;border-radius:8px;background:#111;}
@@ -1055,7 +1079,8 @@ function playConfirmSound(){
 // for image data).
 let cameraStream = null;
 let cameraDraftEntry = null;
-let cameraLogoImage = null;
+let cameraLogoImage = null; // cached <img> decoded from the stored logo, cleared whenever the logo changes
+const CUSTOM_LOGO_KEY = 'kmtrack_customLogo';
 // Bumped every time the camera modal opens/closes. If the user taps Close
 // while getUserMedia() is still waiting on a permission prompt, the stale
 // request checks this counter when it resolves and immediately stops the
@@ -1188,29 +1213,106 @@ document.addEventListener('visibilitychange', () => {
   if(document.hidden && cameraStream) closeCamera();
 });
 
+// ---------- Custom inspection-photo logo (user-supplied, replaces the old
+// hard-coded KMTrack.png stamp) ----------
+// Stored as a resized data URL in localStorage, so it's small enough to
+// persist and survives across app restarts. It stays in effect for every
+// photo captured until the user uploads a different one or removes it.
+function getStoredLogoDataUrl(){
+  try{ return localStorage.getItem(CUSTOM_LOGO_KEY); }
+  catch(e){ return null; }
+}
+
+function resizeImageToDataUrl(img, maxW, maxH){
+  let rw = img.width, rh = img.height;
+  const ratio = Math.min(maxW / rw, maxH / rh, 1);
+  rw = Math.round(rw * ratio);
+  rh = Math.round(rh * ratio);
+  const c = document.createElement('canvas');
+  c.width = rw; c.height = rh;
+  c.getContext('2d').drawImage(img, 0, 0, rw, rh);
+  return c.toDataURL('image/png');
+}
+
+function saveCustomLogoFile(file){
+  return new Promise((resolve, reject) => {
+    if(!file || !file.type || !file.type.startsWith('image/')){
+      reject(new Error('Please choose an image file.'));
+      return;
+    }
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('Could not read that file.'));
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error('Could not read that image.'));
+      img.onload = () => {
+        try{
+          const dataUrl = resizeImageToDataUrl(img, 480, 200);
+          localStorage.setItem(CUSTOM_LOGO_KEY, dataUrl);
+          cameraLogoImage = null; // force a reload from the new stored value
+          resolve(dataUrl);
+        }catch(e){ reject(new Error('Could not save this logo on this device.')); }
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function removeCustomLogo(){
+  try{ localStorage.removeItem(CUSTOM_LOGO_KEY); }catch(e){ /* non-critical */ }
+  cameraLogoImage = null;
+}
+
 function loadCameraLogo(){
   if(cameraLogoImage) return Promise.resolve(cameraLogoImage);
+  const dataUrl = getStoredLogoDataUrl();
+  if(!dataUrl) return Promise.resolve(null);
   return new Promise(resolve => {
     const img = new Image();
     img.onload = () => { cameraLogoImage = img; resolve(img); };
     img.onerror = () => resolve(null);
-    img.src = 'KMTrack.png';
+    img.src = dataUrl;
   });
 }
 
-function drawWrappedText(ctx, text, x, y, maxWidth, lineHeight){
+function refreshLogoModalPreview(){
+  const dataUrl = getStoredLogoDataUrl();
+  const imgEl = document.getElementById('logo-preview-img');
+  const emptyEl = document.getElementById('logo-empty-msg');
+  const removeBtn = document.getElementById('logo-remove-btn');
+  const logoBtn = document.getElementById('camera-logo-btn');
+  if(dataUrl){
+    imgEl.src = dataUrl;
+    imgEl.style.display = 'block';
+    emptyEl.style.display = 'none';
+    removeBtn.style.display = 'block';
+    if(logoBtn) logoBtn.classList.add('has-logo');
+  }else{
+    imgEl.removeAttribute('src');
+    imgEl.style.display = 'none';
+    emptyEl.style.display = 'block';
+    removeBtn.style.display = 'none';
+    if(logoBtn) logoBtn.classList.remove('has-logo');
+  }
+}
+
+// Splits text into wrapped lines without drawing, so the caller can measure
+// the exact block height *before* drawing anything. (The previous version
+// drew and measured in the same pass, which is what let lines overlap.)
+function wrapLines(ctx, text, maxWidth){
   const words = String(text).split(' ');
+  const lines = [];
   let line = '';
   for(const word of words){
     const test = line ? line+' '+word : word;
     if(ctx.measureText(test).width > maxWidth && line){
-      ctx.fillText(line, x, y);
-      y += lineHeight;
+      lines.push(line);
       line = word;
     }else line = test;
   }
-  if(line) ctx.fillText(line, x, y);
-  return y;
+  if(line) lines.push(line);
+  return lines;
 }
 
 async function captureInspectionPhoto(){
@@ -1233,43 +1335,75 @@ async function captureInspectionPhoto(){
 
   // Metadata band baked directly into the JPEG, so the photo carries its
   // own location/time record even outside the app (e.g. shared or printed).
-  const scale = Math.max(1, w / 1280);
-  const bandH = Math.round(180 * scale);
-  const gradient = ctx.createLinearGradient(0, h-bandH-80*scale, 0, h);
-  gradient.addColorStop(0, 'rgba(0,0,0,0)');
-  gradient.addColorStop(.35, 'rgba(0,0,0,.58)');
-  gradient.addColorStop(1, 'rgba(0,0,0,.86)');
-  ctx.fillStyle = gradient;
-  ctx.fillRect(0, h-bandH-80*scale, w, bandH+80*scale);
+  // Every line is wrapped and measured *before* anything is drawn, so the
+  // band is always sized exactly to fit the text — no overlapping lines,
+  // regardless of how long the location/lane text turns out to be. Sizing
+  // scales off image width (not a fixed pixel count) so text stays large
+  // and legible on any camera resolution, matching a dashcam-style stamp.
+  const scale = Math.max(1, w / 1080);
+  const edgePad = Math.round(22*scale);
+  const stripeW = Math.round(5*scale);
+  const contentX = edgePad + stripeW + Math.round(14*scale);
+  const maxTextW = w - contentX - edgePad;
 
-  const padPx = Math.round(24*scale);
   const data = currentEntryCameraData(entry);
   const captureDate = new Date();
   const kmText = data.kmText ? `KM ${data.kmText}` : 'OFF MAPPED NETWORK';
 
   const logo = await loadCameraLogo();
+  const logoGap = Math.round(14*scale);
+  let logoW = 0, logoH = 0;
   if(logo){
-    const logoH = Math.round(52*scale);
-    const logoW = Math.round(logo.width * logoH / logo.height);
-    ctx.drawImage(logo, padPx, h-bandH-38*scale, logoW, logoH);
+    logoH = Math.round(50*scale);
+    logoW = Math.round(logo.width * logoH / logo.height);
   }
 
-  const textX = padPx;
-  let y = h-bandH+34*scale;
-  const maxTextW = w - padPx*2;
+  // Bold, high-contrast lines sized well above the old stamp so they read
+  // clearly at a glance, the way the Timemark reference stamp does.
+  const textStyles = [
+    { text: data.location, font: `800 ${Math.round(27*scale)}px -apple-system, BlinkMacSystemFont, Arial, sans-serif`, lineH: Math.round(32*scale), gapAfter: Math.round(6*scale) },
+    { text: formatPhotoDate(captureDate), font: `700 ${Math.round(23*scale)}px -apple-system, BlinkMacSystemFont, Arial, sans-serif`, lineH: Math.round(28*scale), gapAfter: Math.round(9*scale) },
+    { text: `${kmText} · ${data.direction} · ${data.lane}`, font: `700 ${Math.round(21*scale)}px monospace`, lineH: Math.round(26*scale), gapAfter: Math.round(5*scale) },
+    { text: `${formatCoordinate(entry.lat,'N','S')}, ${formatCoordinate(entry.lon,'E','W')}`, font: `600 ${Math.round(19*scale)}px monospace`, lineH: Math.round(24*scale), gapAfter: 0 }
+  ];
+  let textBlockH = 0;
+  textStyles.forEach(style => {
+    ctx.font = style.font;
+    style.lines = wrapLines(ctx, style.text, maxTextW);
+    textBlockH += style.lines.length * style.lineH + style.gapAfter;
+  });
+
+  const topPad = Math.round(22*scale);
+  const bottomPad = Math.round(24*scale);
+  const logoBlockH = logo ? logoH + logoGap : 0;
+  const bandH = topPad + logoBlockH + textBlockH + bottomPad;
+  const bandY = h - bandH;
+
+  // Solid (not gradient) scrim: guarantees the text stays readable no
+  // matter what's behind it — a light wall, sky, pavement, anything.
+  ctx.fillStyle = 'rgba(5,9,13,0.80)';
+  ctx.fillRect(0, bandY, w, bandH);
+
+  // Left accent stripe, echoing the reference stamp's colour keyline.
+  ctx.fillStyle = '#f4b400';
+  ctx.fillRect(edgePad, bandY + topPad, stripeW, bandH - topPad - bottomPad);
+
+  let y = bandY + topPad;
+  if(logo){
+    ctx.drawImage(logo, contentX, y, logoW, logoH);
+    y += logoBlockH;
+  }
+
   ctx.fillStyle = '#ffffff';
   ctx.textBaseline = 'top';
-  ctx.font = `700 ${Math.round(18*scale)}px -apple-system, BlinkMacSystemFont, Arial, sans-serif`;
-  y = drawWrappedText(ctx, `${data.location}`, textX, y, maxTextW, Math.round(23*scale));
-  y += 5*scale;
-  ctx.font = `700 ${Math.round(17*scale)}px -apple-system, BlinkMacSystemFont, Arial, sans-serif`;
-  ctx.fillText(formatPhotoDate(captureDate), textX, y);
-  y += 25*scale;
-  ctx.font = `600 ${Math.round(15*scale)}px monospace`;
-  y = drawWrappedText(ctx, `${kmText} · ${data.direction} · ${data.lane}`, textX, y, maxTextW, Math.round(21*scale));
-  y += 4*scale;
-  ctx.font = `500 ${Math.round(14*scale)}px monospace`;
-  drawWrappedText(ctx, `${formatCoordinate(entry.lat,'N','S')}, ${formatCoordinate(entry.lon,'E','W')}`, textX, y, maxTextW, Math.round(20*scale));
+  textStyles.forEach(style => {
+    ctx.font = style.font;
+    style.lines.forEach(line => {
+      ctx.fillText(line, contentX, y);
+      y += style.lineH;
+    });
+    y += style.gapAfter;
+  });
 
   const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', .88));
   if(!blob){
@@ -1337,6 +1471,38 @@ document.addEventListener('DOMContentLoaded', () => {
   cameraShutterBtn.addEventListener('click', captureInspectionPhoto);
   document.querySelectorAll('.category-camera-btn').forEach(btn => {
     btn.addEventListener('click', () => openCameraForNewEntry(btn.dataset.cameraType));
+  });
+
+  // ---- Custom logo manager (opened from the camera topbar) ----
+  refreshLogoModalPreview();
+  const logoModal = document.getElementById('logo-modal');
+  const logoFileInput = document.getElementById('logo-file-input');
+  document.getElementById('camera-logo-btn').addEventListener('click', () => {
+    refreshLogoModalPreview();
+    logoModal.classList.add('open');
+    logoModal.setAttribute('aria-hidden','false');
+  });
+  const closeLogoModal = () => {
+    logoModal.classList.remove('open');
+    logoModal.setAttribute('aria-hidden','true');
+  };
+  document.getElementById('logo-done-btn').addEventListener('click', closeLogoModal);
+  logoModal.addEventListener('click', e => { if(e.target.id === 'logo-modal') closeLogoModal(); });
+  logoFileInput.addEventListener('change', async (e) => {
+    const file = e.target.files && e.target.files[0];
+    if(!file) return;
+    try{
+      await saveCustomLogoFile(file);
+      refreshLogoModalPreview();
+    }catch(err){
+      alert(err.message || 'Could not save that logo.');
+    }finally{
+      logoFileInput.value = '';
+    }
+  });
+  document.getElementById('logo-remove-btn').addEventListener('click', () => {
+    removeCustomLogo();
+    refreshLogoModalPreview();
   });
 
   document.getElementById('photo-close').addEventListener('click', () => {
@@ -1666,7 +1832,10 @@ if('serviceWorker' in navigator){
     <video id="camera-video" autoplay playsinline muted></video>
     <div class="camera-topbar">
       <div class="camera-title">KMTRACK · INSPECTION PHOTO</div>
-      <button class="camera-close" id="camera-close" type="button">Close</button>
+      <div class="camera-topbar-actions">
+        <button class="camera-logo-btn" id="camera-logo-btn" type="button"><span class="dot"></span>Logo</button>
+        <button class="camera-close" id="camera-close" type="button">Close</button>
+      </div>
     </div>
     <div class="camera-info" id="camera-info">
       <div class="capture-time" id="camera-time">--</div>
@@ -1699,6 +1868,21 @@ if('serviceWorker' in navigator){
     <select id="edit-lane-select" class="edit-select"></select>
     <input id="edit-lane-others-input" type="text" class="edit-others-input" placeholder="Specify lane" style="display:none;">
     <div class="modal-actions"><button type="button" class="lane-cancel" id="edit-cancel">Cancel</button><button type="button" class="lane-save" id="edit-save">Save</button></div>
+  </div>
+</div>
+
+<div id="logo-modal" class="modal-backdrop" aria-hidden="true">
+  <div class="lane-modal" role="dialog" aria-modal="true" aria-labelledby="logo-modal-title">
+    <h3 id="logo-modal-title">🖼 Inspection photo logo</h3>
+    <div class="logo-preview-box" id="logo-preview-box">
+      <div class="logo-empty" id="logo-empty-msg">No logo set — photos are stamped without one</div>
+      <img id="logo-preview-img" alt="Current logo" style="display:none;">
+    </div>
+    <label class="logo-upload-label" for="logo-file-input" id="logo-upload-label">Upload logo</label>
+    <input type="file" id="logo-file-input" accept="image/*" style="display:none;">
+    <button type="button" class="logo-remove-btn" id="logo-remove-btn" style="display:none;">Remove logo</button>
+    <div class="logo-hint">This logo is stamped on every inspection photo you capture until you upload a different one or remove it. Best results: a wide logo with a transparent background.</div>
+    <div class="modal-actions"><button type="button" class="lane-save" id="logo-done-btn">Done</button></div>
   </div>
 </div>
 
