@@ -130,7 +130,7 @@
   .defect-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
 
   .defect-category{margin-bottom:14px;}
-  .category-label{font-size:13px; font-weight:700; letter-spacing:0.5px; margin-bottom:6px; color:var(--line-white);}
+  .category-label{font-size:13px; font-weight:700; letter-spacing:0.5px; margin-bottom:6px; color:var(--line-white); display:flex; align-items:center; justify-content:space-between; gap:8px;}
   .category-label .category-sub{font-size:10px; font-weight:400; color:#9aa0a6; display:block; margin-top:1px; letter-spacing:0;}
   .lane-btn-row{display:grid; grid-template-columns:repeat(5,1fr); gap:5px;}
   .lane-btn{
@@ -207,11 +207,29 @@
   .log-entry.shoving{border-left-color:var(--safety-orange);}
   .log-entry.cracks{border-left-color:#c9c9c9;}
   .log-entry.other{border-left-color:#c1707a;}
+  .log-entry .info{flex:1; min-width:0;}
   .log-entry .info .type{font-weight:700; font-size:14px;}
   .log-entry .info .meta{font-family:var(--mono); font-size:11px; color:#9aa0a6; margin-top:3px; line-height:1.5;}
   .log-entry .del{background:none; border:none; color:#c1392b; font-size:18px; cursor:pointer; padding:4px 8px;}
 
   .count-bar{font-size:12px; color:#9aa0a6; margin-bottom:10px; display:flex; justify-content:space-between;}
+
+  .log-header-row{display:flex; align-items:center; justify-content:space-between; margin-bottom:2px;}
+  .log-header-row h2{margin:0;}
+  .select-toggle-btn{
+    background:transparent; border:1px solid #3a4046; color:#9aa0a6; font-size:11px; font-weight:700;
+    padding:6px 12px; border-radius:16px; cursor:pointer; -webkit-tap-highlight-color:transparent;
+  }
+  .select-toggle-btn.active{background:var(--line-yellow); color:#191c1f; border-color:var(--line-yellow);}
+  .bulk-actions-bar{
+    display:flex; align-items:center; justify-content:space-between; background:var(--panel);
+    border:1px solid #3a4046; border-radius:8px; padding:10px 12px; margin:8px 0 4px; font-size:12px; color:var(--line-white);
+  }
+  .bulk-actions-buttons{display:flex; gap:8px;}
+  .bulk-delete-btn{background:var(--safety-red); color:#fff; border:none; border-radius:6px; padding:7px 14px; font-size:12px; font-weight:700; cursor:pointer;}
+  .bulk-delete-btn:disabled{opacity:.4; cursor:not-allowed;}
+  .bulk-cancel-btn{background:#3a4046; color:var(--line-white); border:none; border-radius:6px; padding:7px 14px; font-size:12px; font-weight:700; cursor:pointer;}
+  .entry-select-checkbox{width:19px; height:19px; margin-right:2px; flex-shrink:0; accent-color:var(--line-yellow); align-self:center;}
 
   .export-btn{
     width:100%; padding:16px; margin-top:18px; border-radius:10px; border:none;
@@ -237,6 +255,10 @@ header{display:flex;align-items:center;gap:12px;}
 
 .lane-help{margin:0 0 10px;color:#9aa0a6;font-size:12px;}
 .modal-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.62);z-index:100;align-items:center;justify-content:center;padding:18px;}
+/* The logo manager can be opened WHILE the camera is showing (z-index:200) —
+   without this override it would render invisibly behind the camera view
+   and only become visible once the camera closed. */
+#logo-modal{z-index:260;}
 .modal-backdrop.open{display:flex;}
 .lane-modal{width:min(360px,100%);background:#101820;border:1px solid #334b5c;border-radius:12px;padding:16px;box-shadow:0 16px 50px rgba(0,0,0,.45);}
 .lane-modal h3{margin:0 0 12px;font-size:16px;}
@@ -276,7 +298,7 @@ button {
 
   /* Per-category camera trigger (opens camera pre-tagged with that defect type) */
   .category-camera-btn{
-    display:inline-flex; align-items:center; justify-content:center;
+    display:inline-flex; align-items:center; justify-content:center; flex-shrink:0;
     width:24px; height:24px; margin-left:6px; padding:0; vertical-align:middle;
     border-radius:6px; border:1px solid #565c62; background:rgba(255,255,255,.06);
     color:var(--line-white); font-size:12px; cursor:pointer; -webkit-tap-highlight-color:transparent;
@@ -314,6 +336,13 @@ button {
   }
   .camera-info .capture-time{font-size:14px;font-weight:700;margin-top:5px;color:#fff;}
   .camera-info .capture-meta{font-family:var(--mono);font-size:11px;line-height:1.55;color:#f2f2f2;margin-top:3px;}
+  /* .camera-info has pointer-events:none (it's just a text overlay so taps
+     pass through to the video/shutter) — this row needs its own override
+     since it's actually interactive. */
+  .camera-lane-row{pointer-events:auto; display:flex; align-items:center; gap:8px; margin-top:10px; flex-wrap:wrap;}
+  .camera-lane-label{font-size:11px; color:#dcdcdc; font-weight:700; letter-spacing:.5px;}
+  .camera-lane-select{padding:7px 10px; border-radius:8px; border:1px solid rgba(255,255,255,.35); background:rgba(0,0,0,.55); color:#fff; font-size:13px;}
+  .camera-lane-others-input{padding:7px 10px; border-radius:8px; border:1px solid rgba(255,255,255,.35); background:rgba(0,0,0,.55); color:#fff; font-size:13px; flex:1; min-width:120px;}
   .camera-bottom{position:absolute;left:0;right:0;bottom:0;height:92px;z-index:3;display:flex;justify-content:center;align-items:center;padding-bottom:env(safe-area-inset-bottom);}
   .camera-shutter{width:68px;height:68px;border-radius:50%;background:#fff;border:5px solid rgba(255,255,255,.5);box-shadow:0 0 0 3px rgba(0,0,0,.65);}
   .camera-shutter:active{transform:scale(.92);}
@@ -429,7 +458,7 @@ button {
     <h2>Log a defect</h2>
 
     <div class="defect-category">
-      <div class="category-label">Potholes <button type="button" class="category-camera-btn" data-camera-type="Potholes" aria-label="Take Potholes photo">📷</button></div>
+      <div class="category-label"><span class="category-label-text">Potholes</span><button type="button" class="category-camera-btn" data-camera-type="Potholes" aria-label="Take Potholes photo">📷</button></div>
       <div class="lane-btn-row">
         <label class="lane-btn pothole haptic-label"><input type="checkbox" switch class="lane-log-trigger" data-defect="Potholes" data-lane="1">1</label>
         <label class="lane-btn pothole haptic-label"><input type="checkbox" switch class="lane-log-trigger" data-defect="Potholes" data-lane="2">2</label>
@@ -440,7 +469,7 @@ button {
     </div>
 
     <div class="defect-category">
-      <div class="category-label">Shoving <button type="button" class="category-camera-btn" data-camera-type="Shoving" aria-label="Take Shoving photo">📷</button></div>
+      <div class="category-label"><span class="category-label-text">Shoving</span><button type="button" class="category-camera-btn" data-camera-type="Shoving" aria-label="Take Shoving photo">📷</button></div>
       <div class="lane-btn-row">
         <label class="lane-btn shoving haptic-label"><input type="checkbox" switch class="lane-log-trigger" data-defect="Shoving" data-lane="1">1</label>
         <label class="lane-btn shoving haptic-label"><input type="checkbox" switch class="lane-log-trigger" data-defect="Shoving" data-lane="2">2</label>
@@ -451,7 +480,7 @@ button {
     </div>
 
     <div class="defect-category">
-      <div class="category-label">Cracks <button type="button" class="category-camera-btn" data-camera-type="Cracks (width>25 mm)" aria-label="Take Cracks photo">📷</button></div>
+      <div class="category-label"><span class="category-label-text">Cracks</span><button type="button" class="category-camera-btn" data-camera-type="Cracks (width>25 mm)" aria-label="Take Cracks photo">📷</button></div>
       <div class="lane-btn-row">
         <label class="lane-btn cracks haptic-label"><input type="checkbox" switch class="lane-log-trigger" data-defect="Cracks (width>25 mm)" data-lane="1">1</label>
         <label class="lane-btn cracks haptic-label"><input type="checkbox" switch class="lane-log-trigger" data-defect="Cracks (width>25 mm)" data-lane="2">2</label>
@@ -462,7 +491,7 @@ button {
     </div>
 
     <div class="defect-category">
-      <div class="category-label">Others <span class="category-sub">(i.e., Damaged markings, Ravelling, Debris)</span> <button type="button" class="category-camera-btn" data-camera-type="Others" aria-label="Take Others photo">📷</button></div>
+      <div class="category-label"><span class="category-label-text">Others <span class="category-sub">(i.e., Damaged markings, Ravelling, Debris)</span></span><button type="button" class="category-camera-btn" data-camera-type="Others" aria-label="Take Others photo">📷</button></div>
       <div class="lane-btn-row">
         <label class="lane-btn other haptic-label"><input type="checkbox" switch class="lane-log-trigger" data-defect="Others" data-lane="1">1</label>
         <label class="lane-btn other haptic-label"><input type="checkbox" switch class="lane-log-trigger" data-defect="Others" data-lane="2">2</label>
@@ -477,7 +506,17 @@ button {
   <div class="lane-divider"></div>
 
   <section class="block">
-    <h2>Inspection log</h2>
+    <div class="log-header-row">
+      <h2>Inspection log</h2>
+      <button type="button" id="select-mode-toggle" class="select-toggle-btn">Select</button>
+    </div>
+    <div class="bulk-actions-bar" id="bulk-actions-bar" style="display:none;">
+      <span id="bulk-selected-count">0 selected</span>
+      <div class="bulk-actions-buttons">
+        <button type="button" id="bulk-delete-btn" class="bulk-delete-btn" disabled>Delete</button>
+        <button type="button" id="bulk-cancel-btn" class="bulk-cancel-btn">Cancel</button>
+      </div>
+    </div>
     <div class="count-bar">
       <span id="count-label">0 entries</span>
       <span id="last-time">--</span>
@@ -1120,6 +1159,48 @@ function updateCameraOverlay(entry){
   cameraMetaEl.textContent = `${station} · ${data.direction} · ${data.lane} · ${formatCoordinate(entry.lat,'N','S')}, ${formatCoordinate(entry.lon,'E','W')}`;
 }
 
+// Lets you pick the lane while framing the shot, instead of only
+// afterward through the Edit values modal. Reuses the same LANE_PRESETS
+// list as that modal (declared further down this script — safe to
+// reference here since this only ever runs from a click, well after the
+// whole script has finished executing once).
+function populateCameraLaneSelect(currentValue){
+  const sel = document.getElementById('camera-lane-select');
+  const othersInput = document.getElementById('camera-lane-others-input');
+  if(!sel || !othersInput) return;
+  sel.innerHTML = '';
+  const blank = document.createElement('option');
+  blank.value = ''; blank.textContent = 'Select lane (optional)';
+  sel.appendChild(blank);
+  LANE_PRESETS.forEach(opt => {
+    const o = document.createElement('option');
+    o.value = opt; o.textContent = opt;
+    sel.appendChild(o);
+  });
+  const isPreset = LANE_PRESETS.slice(0, -1).includes(currentValue);
+  if(!currentValue){
+    sel.value = '';
+    othersInput.style.display = 'none';
+    othersInput.value = '';
+  } else if(isPreset){
+    sel.value = currentValue;
+    othersInput.style.display = 'none';
+    othersInput.value = '';
+  } else {
+    sel.value = 'Others';
+    othersInput.style.display = 'block';
+    othersInput.value = currentValue;
+  }
+}
+
+function applyCameraLaneChange(){
+  if(!cameraDraftEntry) return;
+  const sel = document.getElementById('camera-lane-select');
+  const othersInput = document.getElementById('camera-lane-others-input');
+  cameraDraftEntry.lane = sel.value === 'Others' ? othersInput.value.trim() : sel.value;
+  updateCameraOverlay(cameraDraftEntry);
+}
+
 // Mirrors logDefect's exact off-network rule, but returns a draft snapshot
 // instead of pushing it to entries[] — the photo entry is only committed
 // once a photo is actually captured.
@@ -1170,6 +1251,7 @@ async function openCameraForNewEntry(type){
   cameraErrorEl.classList.remove('show');
   cameraErrorEl.textContent = '';
   cameraShutterBtn.disabled = false;
+  populateCameraLaneSelect('');
   updateCameraOverlay(draft);
   cameraModal.classList.add('show');
   cameraModal.setAttribute('aria-hidden','false');
@@ -1473,6 +1555,12 @@ document.addEventListener('DOMContentLoaded', () => {
     btn.addEventListener('click', () => openCameraForNewEntry(btn.dataset.cameraType));
   });
 
+  document.getElementById('camera-lane-select').addEventListener('change', (e) => {
+    document.getElementById('camera-lane-others-input').style.display = e.target.value === 'Others' ? 'block' : 'none';
+    applyCameraLaneChange();
+  });
+  document.getElementById('camera-lane-others-input').addEventListener('input', applyCameraLaneChange);
+
   // ---- Custom logo manager (opened from the camera topbar) ----
   refreshLogoModalPreview();
   const logoModal = document.getElementById('logo-modal');
@@ -1534,6 +1622,8 @@ function renderLog(){
   document.getElementById('count-mini').textContent = entries.length;
   document.getElementById('count-label').textContent = `${entries.length} ${entries.length === 1 ? 'entry' : 'entries'}`;
   document.getElementById('last-time').textContent = entries.length ? `last: ${entries[entries.length-1].timestamp.split(' ')[1]}` : '--';
+  document.getElementById('bulk-selected-count').textContent = `${selectedEntryIndices.size} selected`;
+  document.getElementById('bulk-delete-btn').disabled = selectedEntryIndices.size === 0;
 
   if(entries.length === 0){
     list.innerHTML = '<div class="log-empty">No defects logged yet</div>';
@@ -1557,7 +1647,12 @@ function renderLog(){
       <div class="photo-status">Photo entry${e.photoTimestamp ? ' · '+e.photoTimestamp : ''}</div>
     ` : '';
 
+    const checkboxHtml = selectMode
+      ? `<input type="checkbox" class="entry-select-checkbox" data-idx="${realIdx}" ${selectedEntryIndices.has(realIdx) ? 'checked' : ''}>`
+      : '';
+
     div.innerHTML = `
+      ${checkboxHtml}
       <div class="info">
         <div class="type">${e.type}</div>
         <div class="meta">${e.timestamp}<br>${e.lat.toFixed(6)}, ${e.lon.toFixed(6)} · km ${e.km !== null && e.km !== undefined ? formatKmStation(e.km) : 'n/a'}${e.expressway ? ` · ${e.expressway}${e.bound ? ' '+e.bound : ''}` : ''}${e.lane ? ` · Lane: ${e.lane}` : ' · Lane: —'}</div>
@@ -1566,6 +1661,10 @@ function renderLog(){
       <button class="del" data-idx="${realIdx}">✕</button>
     `;
     list.appendChild(div);
+  });
+  list.querySelectorAll('.entry-select-checkbox').forEach(cb => {
+    cb.addEventListener('click', e => e.stopPropagation());
+    cb.addEventListener('change', e => toggleEntrySelection(+e.currentTarget.dataset.idx));
   });
   list.querySelectorAll('.del').forEach(btn => {
     btn.addEventListener('click', (e) => {
@@ -1606,10 +1705,31 @@ function renderLog(){
 }
 renderLog();
 
+document.getElementById('select-mode-toggle').addEventListener('click', () => setSelectMode(!selectMode));
+document.getElementById('bulk-cancel-btn').addEventListener('click', () => setSelectMode(false));
+document.getElementById('bulk-delete-btn').addEventListener('click', () => {
+  if(selectedEntryIndices.size === 0) return;
+  const count = selectedEntryIndices.size;
+  if(!confirm(`Delete ${count} selected ${count === 1 ? 'entry' : 'entries'}? This cannot be undone.`)) return;
+  // Descending order so splicing doesn't shift the indices still to be removed.
+  const idxDesc = Array.from(selectedEntryIndices).sort((a, b) => b - a);
+  const photoIdsToDelete = [];
+  idxDesc.forEach(idx => {
+    const entry = entries[idx];
+    if(entry && entry.photoId) photoIdsToDelete.push(entry.photoId);
+    entries.splice(idx, 1);
+  });
+  saveEntries();
+  setSelectMode(false); // also re-renders the log
+  photoIdsToDelete.forEach(pid => deletePhoto(pid));
+});
+
 document.addEventListener('click', (e) => {
-  if(e.target.closest('.del') || e.target.closest('.photo-view-btn') || e.target.closest('.photo-remove-btn')) return;
+  if(e.target.closest('.del') || e.target.closest('.photo-view-btn') || e.target.closest('.photo-remove-btn') || e.target.closest('.entry-select-checkbox')) return;
   const card = e.target.closest('.log-entry');
-  if(card && card.dataset.idx !== undefined) openEditModal(Number(card.dataset.idx));
+  if(!card || card.dataset.idx === undefined) return;
+  if(selectMode){ toggleEntrySelection(Number(card.dataset.idx)); return; }
+  openEditModal(Number(card.dataset.idx));
 });
 
 document.getElementById('clear-btn').addEventListener('click', () => {
@@ -1617,7 +1737,7 @@ document.getElementById('clear-btn').addEventListener('click', () => {
   if(confirm(`Delete all ${entries.length} logged entries? This cannot be undone.`)){
     entries = [];
     saveEntries();
-    renderLog();
+    setSelectMode(false); // also re-renders the log
     clearPhotoStore();
   }
 });
@@ -1649,6 +1769,26 @@ const DEFECT_OPTIONS = [
 const LANE_PRESETS = ['1','2','3','4','Acce','Dece','Shoulder','Interchange','Ramp','Others'];
 
 let editingEntryIndex = null;
+
+// ---------- Multi-select delete ----------
+let selectMode = false;
+let selectedEntryIndices = new Set();
+
+function setSelectMode(on){
+  selectMode = on;
+  if(!on) selectedEntryIndices.clear();
+  const toggleBtn = document.getElementById('select-mode-toggle');
+  toggleBtn.classList.toggle('active', on);
+  toggleBtn.textContent = on ? 'Done' : 'Select';
+  document.getElementById('bulk-actions-bar').style.display = on ? 'flex' : 'none';
+  renderLog();
+}
+
+function toggleEntrySelection(idx){
+  if(selectedEntryIndices.has(idx)) selectedEntryIndices.delete(idx);
+  else selectedEntryIndices.add(idx);
+  renderLog();
+}
 
 function populateDefectSelect(currentValue){
   const sel = document.getElementById('edit-defect-select');
@@ -1840,6 +1980,11 @@ if('serviceWorker' in navigator){
     <div class="camera-info" id="camera-info">
       <div class="capture-time" id="camera-time">--</div>
       <div class="capture-meta" id="camera-meta">GPS unavailable</div>
+      <div class="camera-lane-row" id="camera-lane-row">
+        <label for="camera-lane-select" class="camera-lane-label">Lane</label>
+        <select id="camera-lane-select" class="camera-lane-select"></select>
+        <input id="camera-lane-others-input" type="text" class="camera-lane-others-input" placeholder="Specify lane" style="display:none;">
+      </div>
     </div>
     <div class="camera-error" id="camera-error"></div>
     <div class="camera-bottom">
