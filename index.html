@@ -53,14 +53,20 @@
     border:1px solid #3a4046;
     border-radius:10px;
     padding:14px 16px;
+    display:flex;
+    align-items:stretch;
+    gap:14px;
+  }
+  .readout-main{
+    flex:1 1 auto; min-width:0;
     display:grid;
     grid-template-columns:1fr 1fr;
     gap:10px 16px;
   }
-  .readout .field{display:flex; flex-direction:column;}
-  .readout .field .label{font-size:10px; text-transform:uppercase; letter-spacing:1px; color:#9aa0a6;}
-  .readout .field .value{font-family:var(--mono); font-size:16px; margin-top:2px; word-break:break-all;}
-  .readout .status{grid-column:1/-1; font-size:11px; font-family:var(--mono); margin-top:2px;}
+  .readout-main .field{display:flex; flex-direction:column;}
+  .readout-main .field .label{font-size:10px; text-transform:uppercase; letter-spacing:1px; color:#9aa0a6;}
+  .readout-main .field .value{font-family:var(--mono); font-size:16px; margin-top:2px; word-break:break-all;}
+  .readout-main .status{grid-column:1/-1; font-size:11px; font-family:var(--mono); margin-top:2px;}
   .status.ok{color:var(--safety-green);}
   .status.warn{color:var(--line-yellow);}
   .status.err{color:var(--safety-red);}
@@ -85,13 +91,22 @@
   }
   .kmpost .segment-tag.faroff{background:rgba(193,57,43,0.5);}
 
-  /* Bound (direction) toggle */
-  .bound-block{margin-top:12px; background:var(--panel); border:1px solid #3a4046; border-radius:10px; padding:10px 14px;}
-  .bound-label{font-size:11px; color:#9aa0a6; margin-bottom:8px; line-height:1.4;}
-  .bound-toggle{display:flex; gap:8px;}
-  .bound-hint{font-size:12px; color:#565c62; font-style:italic;}
+  /* Bound (direction) toggle — now a compact side panel inside .readout,
+     next to the lat/lon/accuracy fields, rather than its own full-width block. */
+  .bound-panel{
+    flex:0 0 132px;
+    background:var(--asphalt-2);
+    border:1px solid #3a4046;
+    border-radius:10px;
+    padding:10px 12px;
+    display:flex;
+    flex-direction:column;
+  }
+  .bound-panel-label{font-size:12px; color:#c7ccd1; font-weight:600; margin-bottom:8px;}
+  .bound-toggle{display:flex; flex-direction:column; gap:8px;}
+  .bound-hint{font-size:11px; color:#565c62; font-style:italic; line-height:1.4;}
   button.bound-btn{
-    flex:1; padding:12px 10px; border-radius:8px; border:2px solid #3a4046;
+    width:100%; padding:12px 8px; border-radius:8px; border:2px solid #3a4046;
     background:var(--asphalt-2); color:var(--line-white); font-weight:700; font-size:14px;
     cursor:pointer; -webkit-tap-highlight-color:transparent;
   }
@@ -277,23 +292,31 @@ button {
 <main>
 
   <div class="readout">
-    <div class="field">
-      <div class="label">Latitude</div>
-      <div class="value" id="lat">--</div>
+    <div class="readout-main">
+      <div class="field">
+        <div class="label">Latitude</div>
+        <div class="value" id="lat">--</div>
+      </div>
+      <div class="field">
+        <div class="label">Longitude</div>
+        <div class="value" id="lon">--</div>
+      </div>
+      <div class="field">
+        <div class="label">Accuracy</div>
+        <div class="value" id="acc">--</div>
+      </div>
+      <div class="field">
+        <div class="label">Points logged</div>
+        <div class="value" id="count-mini">0</div>
+      </div>
+      <div class="status warn" id="gps-status">Requesting GPS permission...</div>
     </div>
-    <div class="field">
-      <div class="label">Longitude</div>
-      <div class="value" id="lon">--</div>
+    <div class="bound-panel">
+      <div class="bound-panel-label">Set Bound Manually</div>
+      <div class="bound-toggle" id="bound-toggle">
+        <span class="bound-hint" id="bound-hint">detecting segment...</span>
+      </div>
     </div>
-    <div class="field">
-      <div class="label">Accuracy</div>
-      <div class="value" id="acc">--</div>
-    </div>
-    <div class="field">
-      <div class="label">Points logged</div>
-      <div class="value" id="count-mini">0</div>
-    </div>
-    <div class="status warn" id="gps-status">Requesting GPS permission...</div>
   </div>
 
   <div class="kmpost">
@@ -301,13 +324,6 @@ button {
     <div class="kmvalue" id="km-value">--.---</div>
     <div class="kmunit">kilometers (interpolated)</div>
     <div class="segment-tag" id="segment-tag">--</div>
-  </div>
-
-  <div class="bound-block">
-    <div class="bound-label">Direction you're traveling (set manually — can't be auto-detected from this data)</div>
-    <div class="bound-toggle" id="bound-toggle">
-      <span class="bound-hint" id="bound-hint">detecting segment...</span>
-    </div>
   </div>
 
   <div class="schematic-block">
