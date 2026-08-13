@@ -273,6 +273,66 @@ button {
   touch-action: manipulation;
 }
 
+
+  /* Per-category camera trigger (opens camera pre-tagged with that defect type) */
+  .category-camera-btn{
+    display:inline-flex; align-items:center; justify-content:center;
+    width:24px; height:24px; margin-left:6px; padding:0; vertical-align:middle;
+    border-radius:6px; border:1px solid #565c62; background:rgba(255,255,255,.06);
+    color:var(--line-white); font-size:12px; cursor:pointer; -webkit-tap-highlight-color:transparent;
+  }
+  .category-camera-btn:active{transform:scale(.92);}
+
+  /* Per-entry photo actions + status */
+  .entry-actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:7px;}
+  .photo-view-btn,.photo-remove-btn{
+    display:inline-flex;align-items:center;gap:5px;padding:6px 9px;border-radius:6px;
+    border:1px solid #565c62;background:rgba(255,255,255,.04);color:var(--line-white);
+    font-size:11px;font-weight:600;cursor:pointer;-webkit-tap-highlight-color:transparent;
+  }
+  .photo-view-btn{border-color:rgba(46,139,87,.7);color:#8ee0aa;}
+  .photo-remove-btn{border-color:rgba(193,57,43,.65);color:#ef8d83;}
+  .photo-status{font-size:10px;color:#8aa0ad;margin-top:4px;font-family:var(--mono);}
+
+  /* Full-screen camera capture */
+  .camera-modal,.photo-modal{position:fixed;inset:0;z-index:200;display:none;background:#000;}
+  .camera-modal.show,.photo-modal.show{display:flex;}
+  .camera-shell{position:relative;width:100%;height:100%;overflow:hidden;background:#000;}
+  #camera-video{width:100%;height:100%;object-fit:cover;background:#000;}
+  .camera-topbar{
+    position:absolute;top:0;left:0;right:0;padding:calc(env(safe-area-inset-top) + 12px) 14px 12px;
+    display:flex;align-items:center;justify-content:space-between;
+    background:linear-gradient(to bottom,rgba(0,0,0,.68),transparent);z-index:2;
+  }
+  .camera-topbar .camera-title{font-weight:800;font-size:14px;letter-spacing:.7px;color:#fff;}
+  .camera-close,.camera-shutter{border:0;cursor:pointer;-webkit-tap-highlight-color:transparent;}
+  .camera-close{background:rgba(0,0,0,.5);color:#fff;border:1px solid rgba(255,255,255,.35);border-radius:20px;padding:8px 12px;font-size:13px;}
+  .camera-info{
+    position:absolute;left:0;right:0;bottom:0;padding:18px 18px calc(env(safe-area-inset-bottom) + 100px);
+    background:linear-gradient(to top,rgba(0,0,0,.86),rgba(0,0,0,.52),transparent);
+    z-index:2;pointer-events:none;
+  }
+  .camera-info .capture-time{font-size:14px;font-weight:700;margin-top:5px;color:#fff;}
+  .camera-info .capture-meta{font-family:var(--mono);font-size:11px;line-height:1.55;color:#f2f2f2;margin-top:3px;}
+  .camera-bottom{position:absolute;left:0;right:0;bottom:0;height:92px;z-index:3;display:flex;justify-content:center;align-items:center;padding-bottom:env(safe-area-inset-bottom);}
+  .camera-shutter{width:68px;height:68px;border-radius:50%;background:#fff;border:5px solid rgba(255,255,255,.5);box-shadow:0 0 0 3px rgba(0,0,0,.65);}
+  .camera-shutter:active{transform:scale(.92);}
+  .camera-shutter:disabled{opacity:.5;}
+  .camera-hint{position:absolute;bottom:calc(env(safe-area-inset-bottom) + 24px);right:16px;color:#ddd;font-size:10px;font-family:var(--mono);z-index:4;}
+  .camera-error{position:absolute;left:18px;right:18px;top:50%;transform:translateY(-50%);padding:14px;border-radius:10px;background:rgba(193,57,43,.88);color:#fff;font-size:13px;line-height:1.45;z-index:5;display:none;}
+  .camera-error.show{display:block;}
+  .photo-modal{align-items:center;justify-content:center;padding:18px;background:rgba(0,0,0,.92);}
+  .photo-card{width:min(920px,100%);max-height:100%;display:flex;flex-direction:column;gap:10px;}
+  #photo-preview{max-width:100%;max-height:78vh;object-fit:contain;border-radius:8px;background:#111;}
+  .photo-actions{display:flex;gap:8px;}
+  .photo-actions button,.photo-actions a{flex:1;text-align:center;padding:11px;border-radius:8px;font-size:13px;font-weight:700;text-decoration:none;cursor:pointer;}
+  #photo-close{background:transparent;border:1px solid #565c62;color:#fff;}
+  #photo-download{background:var(--line-yellow);border:1px solid var(--line-yellow);color:#191c1f;}
+  @media (max-width:600px){
+    .camera-info{padding-left:14px;padding-right:14px;}
+    .camera-info .capture-time{font-size:13px;}
+    .camera-info .capture-meta{font-size:10px;}
+  }
 </style>
 </head>
 <body>
@@ -345,7 +405,7 @@ button {
     <h2>Log a defect</h2>
 
     <div class="defect-category">
-      <div class="category-label">Potholes</div>
+      <div class="category-label">Potholes <button type="button" class="category-camera-btn" data-camera-type="Potholes" aria-label="Take Potholes photo">📷</button></div>
       <div class="lane-btn-row">
         <label class="lane-btn pothole haptic-label"><input type="checkbox" switch class="lane-log-trigger" data-defect="Potholes" data-lane="1">1</label>
         <label class="lane-btn pothole haptic-label"><input type="checkbox" switch class="lane-log-trigger" data-defect="Potholes" data-lane="2">2</label>
@@ -356,7 +416,7 @@ button {
     </div>
 
     <div class="defect-category">
-      <div class="category-label">Shoving</div>
+      <div class="category-label">Shoving <button type="button" class="category-camera-btn" data-camera-type="Shoving" aria-label="Take Shoving photo">📷</button></div>
       <div class="lane-btn-row">
         <label class="lane-btn shoving haptic-label"><input type="checkbox" switch class="lane-log-trigger" data-defect="Shoving" data-lane="1">1</label>
         <label class="lane-btn shoving haptic-label"><input type="checkbox" switch class="lane-log-trigger" data-defect="Shoving" data-lane="2">2</label>
@@ -367,7 +427,7 @@ button {
     </div>
 
     <div class="defect-category">
-      <div class="category-label">Cracks</div>
+      <div class="category-label">Cracks <button type="button" class="category-camera-btn" data-camera-type="Cracks (width>25 mm)" aria-label="Take Cracks photo">📷</button></div>
       <div class="lane-btn-row">
         <label class="lane-btn cracks haptic-label"><input type="checkbox" switch class="lane-log-trigger" data-defect="Cracks (width>25 mm)" data-lane="1">1</label>
         <label class="lane-btn cracks haptic-label"><input type="checkbox" switch class="lane-log-trigger" data-defect="Cracks (width>25 mm)" data-lane="2">2</label>
@@ -378,7 +438,7 @@ button {
     </div>
 
     <div class="defect-category">
-      <div class="category-label">Others <span class="category-sub">(i.e., Damaged markings, Ravelling, Debris)</span></div>
+      <div class="category-label">Others <span class="category-sub">(i.e., Damaged markings, Ravelling, Debris)</span> <button type="button" class="category-camera-btn" data-camera-type="Others" aria-label="Take Others photo">📷</button></div>
       <div class="lane-btn-row">
         <label class="lane-btn other haptic-label"><input type="checkbox" switch class="lane-log-trigger" data-defect="Others" data-lane="1">1</label>
         <label class="lane-btn other haptic-label"><input type="checkbox" switch class="lane-log-trigger" data-defect="Others" data-lane="2">2</label>
@@ -409,10 +469,85 @@ button {
 <script>
 let currentPos = null; // {lat, lon, acc}
 let calibData = [];    // {e, b, k, lat, lon} — loaded from the NLEX network dataset
-let entries = [];      // {type, timestamp, lat, lon, km, expressway, bound, lane}
+let entries = [];      // {type, timestamp, lat, lon, km, expressway, bound, lane, photoId, photoFilename, photoTimestamp}
 let expresswayBounds = {}; // { "NLEX": ["NB","SB"], "C3-R10 RAMP": ["EB","WB"], ... }
 let userBound = null;      // manually selected direction, e.g. "NB"
 let currentExpressway = null; // last detected corridor, used to know which bound pair to show
+
+// ---------- Photo storage (IndexedDB) ----------
+// Photos are stored separately from the localStorage entry log — a JPEG per
+// defect can be a few hundred KB to a few MB, well past what localStorage
+// can reasonably hold, so they live in IndexedDB and are referenced from an
+// entry only by photoId.
+const PHOTO_DB_NAME = 'kmtrack_photos_v1';
+const PHOTO_STORE_NAME = 'photos';
+let photoDBPromise = null;
+
+function openPhotoDB(){
+  if(photoDBPromise) return photoDBPromise;
+  photoDBPromise = new Promise((resolve, reject) => {
+    if(!('indexedDB' in window)) return reject(new Error('IndexedDB is not supported on this device/browser.'));
+    const req = indexedDB.open(PHOTO_DB_NAME, 1);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      if(!db.objectStoreNames.contains(PHOTO_STORE_NAME)) db.createObjectStore(PHOTO_STORE_NAME);
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error || new Error('Could not open photo storage.'));
+  });
+  return photoDBPromise;
+}
+
+async function putPhoto(photoId, blob){
+  const db = await openPhotoDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(PHOTO_STORE_NAME, 'readwrite');
+    tx.objectStore(PHOTO_STORE_NAME).put(blob, photoId);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error || new Error('Could not save photo.'));
+  });
+}
+
+async function getPhoto(photoId){
+  if(!photoId) return null;
+  const db = await openPhotoDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(PHOTO_STORE_NAME, 'readonly');
+    const req = tx.objectStore(PHOTO_STORE_NAME).get(photoId);
+    req.onsuccess = () => resolve(req.result || null);
+    req.onerror = () => reject(req.error || new Error('Could not read photo.'));
+  });
+}
+
+async function deletePhoto(photoId){
+  if(!photoId) return;
+  try{
+    const db = await openPhotoDB();
+    await new Promise((resolve, reject) => {
+      const tx = db.transaction(PHOTO_STORE_NAME, 'readwrite');
+      tx.objectStore(PHOTO_STORE_NAME).delete(photoId);
+      tx.oncomplete = resolve;
+      tx.onerror = () => reject(tx.error);
+    });
+  }catch(e){ console.warn('Could not delete photo', e); }
+}
+
+async function clearPhotoStore(){
+  try{
+    const db = await openPhotoDB();
+    await new Promise((resolve, reject) => {
+      const tx = db.transaction(PHOTO_STORE_NAME, 'readwrite');
+      tx.objectStore(PHOTO_STORE_NAME).clear();
+      tx.oncomplete = resolve;
+      tx.onerror = () => reject(tx.error);
+    });
+  }catch(e){ console.warn('Could not clear photo storage', e); }
+}
+
+function newId(){
+  if(window.crypto && crypto.randomUUID) return crypto.randomUUID();
+  return 'photo_' + Date.now() + '_' + Math.random().toString(36).slice(2);
+}
 
 // ---------- Persistent storage (survives closing the app) ----------
 const STORAGE_KEY_ENTRIES = 'nlex_inspection_entries_v1';
@@ -436,7 +571,28 @@ function loadFromStorage(){
   if(!storageAvailable) return;
   try{
     const savedEntries = localStorage.getItem(STORAGE_KEY_ENTRIES);
-    if(savedEntries) entries = JSON.parse(savedEntries);
+    if(savedEntries){
+      const parsed = JSON.parse(savedEntries);
+      // Normalize: guard against a corrupted/non-array save, drop any
+      // malformed entries, and backfill fields introduced after some
+      // entries were already saved (photoId/photoFilename/photoTimestamp),
+      // so older logs don't break the photo UI or CSV export.
+      entries = (Array.isArray(parsed) ? parsed : [])
+        .filter(e => e && typeof e === 'object' && typeof e.lat === 'number' && typeof e.lon === 'number')
+        .map(e => ({
+          type: typeof e.type === 'string' && e.type ? e.type : 'Others',
+          timestamp: typeof e.timestamp === 'string' && e.timestamp ? e.timestamp : fullTimestamp(),
+          lat: e.lat,
+          lon: e.lon,
+          km: (e.km === null || typeof e.km === 'number') ? e.km : null,
+          expressway: typeof e.expressway === 'string' ? e.expressway : '',
+          bound: typeof e.bound === 'string' ? e.bound : '',
+          lane: typeof e.lane === 'string' ? e.lane : '',
+          photoId: typeof e.photoId === 'string' ? e.photoId : '',
+          photoFilename: typeof e.photoFilename === 'string' ? e.photoFilename : '',
+          photoTimestamp: typeof e.photoTimestamp === 'string' ? e.photoTimestamp : ''
+        }));
+    }
     const savedBound = localStorage.getItem(STORAGE_KEY_BOUND);
     if(savedBound) userBound = savedBound;
   }catch(e){
@@ -854,7 +1010,10 @@ function logDefect(type, lane){
     km: isOffMappedNetwork ? null : result.km,
     expressway: isOffMappedNetwork ? '' : result.expressway,
     bound: isOffMappedNetwork ? '' : (userBound || ''),
-    lane
+    lane,
+    photoId: '',
+    photoFilename: '',
+    photoTimestamp: ''
   });
 
   saveEntries();
@@ -887,6 +1046,311 @@ function playConfirmSound(){
   }catch(e){ /* Web Audio unavailable — fail silently, logging still works */ }
 }
 
+// ---------- Optional inspection camera ----------
+// A camera capture is its own separate inspection entry (a photo entry),
+// not an attachment to a location-only tally made with the lane buttons.
+// The captured JPEG has GPS/km/direction/lane/time stamped directly into
+// the image, then the blob is stored in IndexedDB and referenced from the
+// entry by photoId only (kept out of localStorage, which is far too small
+// for image data).
+let cameraStream = null;
+let cameraDraftEntry = null;
+let cameraLogoImage = null;
+// Bumped every time the camera modal opens/closes. If the user taps Close
+// while getUserMedia() is still waiting on a permission prompt, the stale
+// request checks this counter when it resolves and immediately stops the
+// stream instead of attaching it to a now-closed modal — otherwise the
+// camera would keep running invisibly in the background.
+let cameraRequestId = 0;
+
+// These are assigned once the DOM (including the modal markup that sits
+// after this script tag) has finished parsing — see the DOMContentLoaded
+// block near the bottom of this camera section.
+let cameraModal, cameraVideo, cameraTimeEl, cameraMetaEl, cameraErrorEl, cameraShutterBtn;
+
+function formatPhotoDate(date){
+  return date.toLocaleString('en-GB', {
+    day:'2-digit', month:'short', year:'numeric',
+    hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:false
+  });
+}
+
+function currentEntryCameraData(entry){
+  const kmText = entry.km !== null && entry.km !== undefined ? formatKmStation(entry.km) : '';
+  const direction = entry.bound || '—';
+  const lane = entry.lane || '—';
+  const location = entry.expressway ? `${entry.expressway}${entry.bound ? ' · '+entry.bound : ''}` : 'North Luzon Expressway';
+  return { kmText, direction, lane, location };
+}
+
+function formatCoordinate(value, positive, negative){
+  const v = Number(value);
+  return `${Math.abs(v).toFixed(6)}°${v >= 0 ? positive : negative}`;
+}
+
+function updateCameraOverlay(entry){
+  const data = currentEntryCameraData(entry);
+  cameraTimeEl.textContent = formatPhotoDate(new Date());
+  const station = data.kmText ? `KM ${data.kmText}` : 'OFF MAPPED NETWORK';
+  cameraMetaEl.textContent = `${station} · ${data.direction} · ${data.lane} · ${formatCoordinate(entry.lat,'N','S')}, ${formatCoordinate(entry.lon,'E','W')}`;
+}
+
+// Mirrors logDefect's exact off-network rule, but returns a draft snapshot
+// instead of pushing it to entries[] — the photo entry is only committed
+// once a photo is actually captured.
+function getCameraSnapshot(type){
+  if(!currentPos){
+    alert('Waiting for GPS fix — please allow location access and wait a moment.');
+    return null;
+  }
+  const result = computeKmStation(currentPos.lat, currentPos.lon);
+  const isOffMappedNetwork = !result || result.distance > offNetworkThresholdKm(currentPos.acc);
+  return {
+    type,
+    lat: currentPos.lat,
+    lon: currentPos.lon,
+    km: isOffMappedNetwork ? null : result.km,
+    expressway: isOffMappedNetwork ? '' : result.expressway,
+    bound: isOffMappedNetwork ? '' : (userBound || ''),
+    lane: ''
+  };
+}
+
+async function requestCameraStream(){
+  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+    throw new Error('Camera access is not available in this browser. Open KMTrack through HTTPS and allow Camera permission.');
+  }
+  // Prefer the rear/environment camera; fall back progressively for devices
+  // that reject a strict facingMode constraint.
+  const attempts = [
+    { video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 } }, audio: false },
+    { video: { facingMode: 'environment' }, audio: false },
+    { video: true, audio: false }
+  ];
+  let lastError = null;
+  for(const constraints of attempts){
+    try{ return await navigator.mediaDevices.getUserMedia(constraints); }
+    catch(err){ lastError = err; }
+  }
+  throw lastError || new Error('Unable to access the camera.');
+}
+
+async function openCameraForNewEntry(type){
+  playConfirmSound();
+  const draft = getCameraSnapshot(type);
+  if(!draft) return;
+
+  const myRequestId = ++cameraRequestId;
+  cameraDraftEntry = draft;
+  cameraErrorEl.classList.remove('show');
+  cameraErrorEl.textContent = '';
+  cameraShutterBtn.disabled = false;
+  updateCameraOverlay(draft);
+  cameraModal.classList.add('show');
+  cameraModal.setAttribute('aria-hidden','false');
+
+  try{
+    const stream = await requestCameraStream();
+    if(myRequestId !== cameraRequestId){
+      // Modal was closed (or a new capture started) while permission was
+      // still resolving — this stream belongs to a request that no longer
+      // applies, so stop it immediately rather than let it run invisibly.
+      stream.getTracks().forEach(t => t.stop());
+      return;
+    }
+    cameraStream = stream;
+    cameraVideo.srcObject = stream;
+    await cameraVideo.play();
+  }catch(err){
+    if(myRequestId !== cameraRequestId) return; // modal already closed; nothing to show the error on
+    cameraErrorEl.textContent = `Could not open the camera. ${err.message || err}`;
+    cameraErrorEl.classList.add('show');
+  }
+}
+
+function closeCamera(){
+  cameraRequestId++; // invalidates any getUserMedia request still in flight
+  if(cameraStream){
+    cameraStream.getTracks().forEach(track => track.stop());
+    cameraStream = null;
+  }
+  cameraVideo.srcObject = null;
+  cameraModal.classList.remove('show');
+  cameraModal.setAttribute('aria-hidden','true');
+  cameraDraftEntry = null;
+}
+// closeCamera / event wiring for elements defined after this script tag
+// happens in the DOMContentLoaded block below.
+
+document.addEventListener('visibilitychange', () => {
+  // Stop the camera when the app is backgrounded, so it doesn't keep
+  // running (and draining battery) behind other apps or a locked screen.
+  if(document.hidden && cameraStream) closeCamera();
+});
+
+function loadCameraLogo(){
+  if(cameraLogoImage) return Promise.resolve(cameraLogoImage);
+  return new Promise(resolve => {
+    const img = new Image();
+    img.onload = () => { cameraLogoImage = img; resolve(img); };
+    img.onerror = () => resolve(null);
+    img.src = 'KMTrack.png';
+  });
+}
+
+function drawWrappedText(ctx, text, x, y, maxWidth, lineHeight){
+  const words = String(text).split(' ');
+  let line = '';
+  for(const word of words){
+    const test = line ? line+' '+word : word;
+    if(ctx.measureText(test).width > maxWidth && line){
+      ctx.fillText(line, x, y);
+      y += lineHeight;
+      line = word;
+    }else line = test;
+  }
+  if(line) ctx.fillText(line, x, y);
+  return y;
+}
+
+async function captureInspectionPhoto(){
+  const entry = cameraDraftEntry;
+  if(!entry) return;
+  if(!cameraStream || !cameraVideo.videoWidth){
+    cameraErrorEl.textContent = 'Camera is not ready yet. Please wait a moment and try again.';
+    cameraErrorEl.classList.add('show');
+    return;
+  }
+  cameraShutterBtn.disabled = true;
+
+  const canvas = document.createElement('canvas');
+  const w = cameraVideo.videoWidth;
+  const h = cameraVideo.videoHeight;
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(cameraVideo, 0, 0, w, h);
+
+  // Metadata band baked directly into the JPEG, so the photo carries its
+  // own location/time record even outside the app (e.g. shared or printed).
+  const scale = Math.max(1, w / 1280);
+  const bandH = Math.round(180 * scale);
+  const gradient = ctx.createLinearGradient(0, h-bandH-80*scale, 0, h);
+  gradient.addColorStop(0, 'rgba(0,0,0,0)');
+  gradient.addColorStop(.35, 'rgba(0,0,0,.58)');
+  gradient.addColorStop(1, 'rgba(0,0,0,.86)');
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, h-bandH-80*scale, w, bandH+80*scale);
+
+  const padPx = Math.round(24*scale);
+  const data = currentEntryCameraData(entry);
+  const captureDate = new Date();
+  const kmText = data.kmText ? `KM ${data.kmText}` : 'OFF MAPPED NETWORK';
+
+  const logo = await loadCameraLogo();
+  if(logo){
+    const logoH = Math.round(52*scale);
+    const logoW = Math.round(logo.width * logoH / logo.height);
+    ctx.drawImage(logo, padPx, h-bandH-38*scale, logoW, logoH);
+  }
+
+  const textX = padPx;
+  let y = h-bandH+34*scale;
+  const maxTextW = w - padPx*2;
+  ctx.fillStyle = '#ffffff';
+  ctx.textBaseline = 'top';
+  ctx.font = `700 ${Math.round(18*scale)}px -apple-system, BlinkMacSystemFont, Arial, sans-serif`;
+  y = drawWrappedText(ctx, `${data.location}`, textX, y, maxTextW, Math.round(23*scale));
+  y += 5*scale;
+  ctx.font = `700 ${Math.round(17*scale)}px -apple-system, BlinkMacSystemFont, Arial, sans-serif`;
+  ctx.fillText(formatPhotoDate(captureDate), textX, y);
+  y += 25*scale;
+  ctx.font = `600 ${Math.round(15*scale)}px monospace`;
+  y = drawWrappedText(ctx, `${kmText} · ${data.direction} · ${data.lane}`, textX, y, maxTextW, Math.round(21*scale));
+  y += 4*scale;
+  ctx.font = `500 ${Math.round(14*scale)}px monospace`;
+  drawWrappedText(ctx, `${formatCoordinate(entry.lat,'N','S')}, ${formatCoordinate(entry.lon,'E','W')}`, textX, y, maxTextW, Math.round(20*scale));
+
+  const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', .88));
+  if(!blob){
+    cameraErrorEl.textContent = 'Could not create the inspection photo.';
+    cameraErrorEl.classList.add('show');
+    cameraShutterBtn.disabled = false;
+    return;
+  }
+
+  try{
+    const photoId = newId();
+    const stamp = captureDate;
+    const filename = `KMTrack_${entry.type.replace(/[^a-z0-9]+/gi,'_')}_${stamp.getFullYear()}${pad(stamp.getMonth()+1)}${pad(stamp.getDate())}_${pad(stamp.getHours())}${pad(stamp.getMinutes())}${pad(stamp.getSeconds())}.jpg`;
+    await putPhoto(photoId, blob);
+
+    entries.push({
+      ...entry,
+      timestamp: fullTimestamp(),
+      photoId,
+      photoFilename: filename,
+      photoTimestamp: formatPhotoDate(stamp)
+    });
+    saveEntries();
+    playConfirmSound();
+    closeCamera();
+    renderLog();
+  }catch(err){
+    cameraErrorEl.textContent = `Could not save the photo on this device. ${err.message || err}`;
+    cameraErrorEl.classList.add('show');
+    cameraShutterBtn.disabled = false;
+  }
+}
+// cameraShutterBtn and .category-camera-btn listeners are registered in
+// the DOMContentLoaded block below, once those elements actually exist.
+
+let activePhotoObjectUrl = null;
+async function viewPhotoForEntry(index){
+  const entry = entries[index];
+  if(!entry || !entry.photoId) return;
+  try{
+    const blob = await getPhoto(entry.photoId);
+    if(!blob){ alert('Photo could not be found on this device.'); return; }
+    if(activePhotoObjectUrl) URL.revokeObjectURL(activePhotoObjectUrl);
+    activePhotoObjectUrl = URL.createObjectURL(blob);
+    document.getElementById('photo-preview').src = activePhotoObjectUrl;
+    const download = document.getElementById('photo-download');
+    download.href = activePhotoObjectUrl;
+    download.download = entry.photoFilename || 'KMTrack_inspection.jpg';
+    const modal = document.getElementById('photo-modal');
+    modal.classList.add('show');
+    modal.setAttribute('aria-hidden','false');
+  }catch(err){
+    alert('Could not open the saved photo: '+err.message);
+  }
+}
+document.addEventListener('DOMContentLoaded', () => {
+  cameraModal = document.getElementById('camera-modal');
+  cameraVideo = document.getElementById('camera-video');
+  cameraTimeEl = document.getElementById('camera-time');
+  cameraMetaEl = document.getElementById('camera-meta');
+  cameraErrorEl = document.getElementById('camera-error');
+  cameraShutterBtn = document.getElementById('camera-shutter');
+
+  document.getElementById('camera-close').addEventListener('click', closeCamera);
+  cameraShutterBtn.addEventListener('click', captureInspectionPhoto);
+  document.querySelectorAll('.category-camera-btn').forEach(btn => {
+    btn.addEventListener('click', () => openCameraForNewEntry(btn.dataset.cameraType));
+  });
+
+  document.getElementById('photo-close').addEventListener('click', () => {
+    const modal = document.getElementById('photo-modal');
+    modal.classList.remove('show');
+    modal.setAttribute('aria-hidden','true');
+    document.getElementById('photo-preview').removeAttribute('src');
+    if(activePhotoObjectUrl){ URL.revokeObjectURL(activePhotoObjectUrl); activePhotoObjectUrl = null; }
+  });
+  document.getElementById('photo-modal').addEventListener('click', (event) => {
+    if(event.target.id === 'photo-modal') document.getElementById('photo-close').click();
+  });
+});
+
 function typeClass(type){
   const t = (type || '').toLowerCase();
   if(t === 'shoving') return 'shoving';
@@ -918,10 +1382,20 @@ function renderLog(){
     const div = document.createElement('div');
     div.className = 'log-entry ' + typeClass(e.type);
     div.dataset.idx = realIdx;
+
+    const photoActionsHtml = e.photoId ? `
+      <div class="entry-actions">
+        <button type="button" class="photo-view-btn" data-idx="${realIdx}">📷 View Photo</button>
+        <button type="button" class="photo-remove-btn" data-idx="${realIdx}">Remove Photo</button>
+      </div>
+      <div class="photo-status">Photo entry${e.photoTimestamp ? ' · '+e.photoTimestamp : ''}</div>
+    ` : '';
+
     div.innerHTML = `
       <div class="info">
         <div class="type">${e.type}</div>
         <div class="meta">${e.timestamp}<br>${e.lat.toFixed(6)}, ${e.lon.toFixed(6)} · km ${e.km !== null && e.km !== undefined ? formatKmStation(e.km) : 'n/a'}${e.expressway ? ` · ${e.expressway}${e.bound ? ' '+e.bound : ''}` : ''}${e.lane ? ` · Lane: ${e.lane}` : ' · Lane: —'}</div>
+        ${photoActionsHtml}
       </div>
       <button class="del" data-idx="${realIdx}">✕</button>
     `;
@@ -934,16 +1408,40 @@ function renderLog(){
       const entry = entries[idx];
       if(!entry) return;
       if(!confirm(`Delete this entry?\n\n${entry.type}${entry.lane ? ' · Lane: '+entry.lane : ''}\n${entry.timestamp}`)) return;
+      const photoId = entry.photoId;
       entries.splice(idx, 1);
       saveEntries();
       renderLog();
+      if(photoId) deletePhoto(photoId);
+    });
+  });
+  list.querySelectorAll('.photo-view-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      viewPhotoForEntry(+e.currentTarget.dataset.idx);
+    });
+  });
+  list.querySelectorAll('.photo-remove-btn').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const idx = +e.currentTarget.dataset.idx;
+      const entry = entries[idx];
+      if(!entry || !entry.photoId) return;
+      if(!confirm('Remove the photo from this inspection entry? The entry itself will stay.')) return;
+      const photoId = entry.photoId;
+      entry.photoId = '';
+      entry.photoFilename = '';
+      entry.photoTimestamp = '';
+      saveEntries();
+      renderLog();
+      await deletePhoto(photoId);
     });
   });
 }
 renderLog();
 
 document.addEventListener('click', (e) => {
-  if(e.target.closest('.del')) return;
+  if(e.target.closest('.del') || e.target.closest('.photo-view-btn') || e.target.closest('.photo-remove-btn')) return;
   const card = e.target.closest('.log-entry');
   if(card && card.dataset.idx !== undefined) openEditModal(Number(card.dataset.idx));
 });
@@ -954,6 +1452,7 @@ document.getElementById('clear-btn').addEventListener('click', () => {
     entries = [];
     saveEntries();
     renderLog();
+    clearPhotoStore();
   }
 });
 
@@ -1081,7 +1580,7 @@ function toDMM(value, posLabel, negLabel){
 
 document.getElementById('export-btn').addEventListener('click', () => {
   if(entries.length === 0) return;
-  const header = ['Type of Defect', 'Timestamp', 'Latitude', 'Longitude', 'Latitude (DMM)', 'Longitude (DMM)', 'Expressway', 'Direction', 'Lane', 'Km Station'];
+  const header = ['Type of Defect', 'Timestamp', 'Latitude', 'Longitude', 'Latitude (DMM)', 'Longitude (DMM)', 'Expressway', 'Direction', 'Lane', 'Km Station', 'Photo', 'Photo Filename'];
   const rows = entries.map(e => [
     e.type,
     e.timestamp,
@@ -1092,7 +1591,9 @@ document.getElementById('export-btn').addEventListener('click', () => {
     e.expressway || '',
     e.bound || '',
     e.lane || '',
-    kmToCsvNumber(e.km)
+    kmToCsvNumber(e.km),
+    e.photoId ? 'Yes' : 'No',
+    e.photoFilename || ''
   ]);
   const csv = [header, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
@@ -1159,6 +1660,35 @@ if('serviceWorker' in navigator){
 
 </script>
 
+
+<div class="camera-modal" id="camera-modal" aria-hidden="true">
+  <div class="camera-shell">
+    <video id="camera-video" autoplay playsinline muted></video>
+    <div class="camera-topbar">
+      <div class="camera-title">KMTRACK · INSPECTION PHOTO</div>
+      <button class="camera-close" id="camera-close" type="button">Close</button>
+    </div>
+    <div class="camera-info" id="camera-info">
+      <div class="capture-time" id="camera-time">--</div>
+      <div class="capture-meta" id="camera-meta">GPS unavailable</div>
+    </div>
+    <div class="camera-error" id="camera-error"></div>
+    <div class="camera-bottom">
+      <button class="camera-shutter" id="camera-shutter" type="button" aria-label="Capture photo"></button>
+    </div>
+    <div class="camera-hint">Separate photo entry · metadata is stamped into the image</div>
+  </div>
+</div>
+
+<div class="photo-modal" id="photo-modal" aria-hidden="true">
+  <div class="photo-card">
+    <img id="photo-preview" alt="KMTrack inspection photo">
+    <div class="photo-actions">
+      <button id="photo-close" type="button">Close</button>
+      <a id="photo-download" href="#" download>Download Photo</a>
+    </div>
+  </div>
+</div>
 
 <div id="edit-modal" class="modal-backdrop" aria-hidden="true">
   <div class="lane-modal" role="dialog" aria-modal="true" aria-labelledby="edit-modal-title">
