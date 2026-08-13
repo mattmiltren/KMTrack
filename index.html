@@ -104,8 +104,8 @@
   .schematic-sub{color:var(--line-white); font-weight:700;}
   #schematic-svg{width:100%; height:auto; display:block; background:#14181c; border-radius:6px; aspect-ratio:300/150;}
   .schematic-path{fill:none; stroke:#3a566a; stroke-width:3; stroke-linecap:round; stroke-linejoin:round;}
-  .schematic-dot{fill:var(--safety-green); stroke:#fff; stroke-width:2;}
-  .schematic-dot.faroff{fill:var(--safety-red);}
+  .schematic-dot{fill:#2f8fe0; stroke:#fff; stroke-width:2;}
+  .schematic-warn{color:var(--safety-red); font-weight:700;}
   .schematic-empty{fill:#565c62; font-size:10px;}
 
   section.block{margin-top:22px;}
@@ -311,7 +311,7 @@ button {
   </div>
 
   <div class="schematic-block">
-    <div class="schematic-label">Position on corridor — <span class="schematic-sub" id="schematic-corridor">--</span></div>
+    <div class="schematic-label">Position on corridor — <span class="schematic-sub" id="schematic-corridor">--</span> <span class="schematic-warn" id="schematic-warn"></span></div>
     <svg id="schematic-svg" viewBox="0 0 300 150" preserveAspectRatio="xMidYMid meet">
       <text x="150" y="78" text-anchor="middle" class="schematic-empty">waiting for GPS / dataset...</text>
     </svg>
@@ -659,23 +659,26 @@ let schematicProjector = null;
 function renderSchematic(result, isOffMappedNetwork){
   const svg = document.getElementById('schematic-svg');
   const corridorLabelEl = document.getElementById('schematic-corridor');
+  const warnEl = document.getElementById('schematic-warn');
 
   if(!result){
     svg.innerHTML = '<text x="150" y="78" text-anchor="middle" class="schematic-empty">waiting for GPS / dataset...</text>';
     corridorLabelEl.textContent = '--';
+    warnEl.textContent = '';
     schematicKey = null;
     schematicProjector = null;
     return;
   }
 
   corridorLabelEl.textContent = `${result.expressway} ${result.bound}`;
+  warnEl.textContent = isOffMappedNetwork ? '⚠ off mapped network' : '';
   const key = corridorKey(result.expressway, result.bound);
 
   if(key !== schematicKey){
     schematicKey = key;
     const idxs = (corridorIndex.get(key) || []).slice().sort((a, b) => calibData[a].k - calibData[b].k);
     if(idxs.length < 2){
-      svg.innerHTML = '<text x="150" y="78" text-anchor="middle" class="schematic-empty">not enough points to draw this segment</text>';
+      svg.innerHTML = `<text x="150" y="72" text-anchor="middle" class="schematic-empty">not enough points for ${result.expressway} ${result.bound}</text><text x="150" y="88" text-anchor="middle" class="schematic-empty">(found ${idxs.length} — dataset may be incomplete)</text>`;
       schematicProjector = null;
       return;
     }
@@ -691,11 +694,15 @@ function renderSchematic(result, isOffMappedNetwork){
   if(schematicProjector && currentPos){
     const dot = document.getElementById('schematic-dot');
     if(dot){
-      const pt = schematicProjector(currentPos.lat, currentPos.lon);
-      const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
-      dot.setAttribute('cx', clamp(pt.x, 4, 296).toFixed(1));
-      dot.setAttribute('cy', clamp(pt.y, 4, 146).toFixed(1));
-      dot.classList.toggle('faroff', isOffMappedNetwork);
+      if(isOffMappedNetwork){
+        // Per spec: don't show a position on the network when we're not on it.
+        dot.setAttribute('display', 'none');
+      } else {
+        dot.removeAttribute('display');
+        const pt = schematicProjector(currentPos.lat, currentPos.lon);
+        dot.setAttribute('cx', pt.x.toFixed(1));
+        dot.setAttribute('cy', pt.y.toFixed(1));
+      }
     }
   }
 }
