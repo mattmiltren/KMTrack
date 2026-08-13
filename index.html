@@ -1131,7 +1131,29 @@ document.addEventListener('pointercancel', (e) => {
 // ---------- Service worker: makes the app shell load with zero network ----------
 if('serviceWorker' in navigator){
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js').catch(err => console.error('Service worker registration failed', err));
+    navigator.serviceWorker.register('./sw.js').then(reg => {
+      // Don't wait for the browser's own update-check schedule (can be as
+      // infrequent as once/day, especially for an installed iOS PWA) —
+      // check the server for a newer sw.js every time the app opens.
+      reg.update().catch(() => {});
+    }).catch(err => console.error('Service worker registration failed', err));
+
+    // skipWaiting()+clients.claim() in sw.js mean a new version takes over
+    // automatically without needing the tab closed — but the page that's
+    // already open doesn't know that happened. This gives a clear signal
+    // instead of leaving you guessing whether a reload actually updated it.
+    let hadController = !!navigator.serviceWorker.controller;
+    let shown = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if(!hadController){ hadController = true; return; } // first-ever install, not an update
+      if(shown) return;
+      shown = true;
+      const banner = document.createElement('div');
+      banner.textContent = '🔄 App updated — tap to reload';
+      banner.style.cssText = 'position:fixed;left:0;right:0;bottom:0;z-index:999;background:#148bd8;color:#fff;text-align:center;padding:12px;font-weight:700;cursor:pointer;-webkit-tap-highlight-color:transparent;';
+      banner.addEventListener('click', () => location.reload());
+      document.body.appendChild(banner);
+    });
   });
 }
 
