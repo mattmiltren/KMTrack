@@ -481,6 +481,45 @@ function buildExpresswayBoundsMap(){
   }
 }
 
+// Spatial index — built here, ABOVE loadCalibrationDataset, since a
+// cache-hit load calls buildSpatialIndex() synchronously on page load.
+// Declaring these below the loader (as before) caused a temporal-dead-zone
+// ReferenceError on the very first load: buildSpatialIndex() referenced
+// spatialGrid/corridorIndex before their `let` declarations had run.
+const GRID_SIZE = 0.0025; // ~250 m latitude cells
+let spatialGrid = new Map();
+let corridorIndex = new Map();
+
+function gridKey(lat, lon){ return `${Math.floor(lat/GRID_SIZE)},${Math.floor(lon/GRID_SIZE)}`; }
+function corridorKey(e,b){ return `${e}|||${b}`; }
+function buildSpatialIndex(){
+  spatialGrid = new Map();
+  corridorIndex = new Map();
+  for(let i=0;i<calibData.length;i++){
+    const p=calibData[i];
+    const g=gridKey(p.lat,p.lon);
+    let bucket=spatialGrid.get(g); if(!bucket){bucket=[];spatialGrid.set(g,bucket);} bucket.push(i);
+    const c=corridorKey(p.e,p.b);
+    let cb=corridorIndex.get(c); if(!cb){cb=[];corridorIndex.set(c,cb);} cb.push(i);
+  }
+}
+function nearbyIndices(lat,lon,rings){
+  const out=[]; const gx=Math.floor(lat/GRID_SIZE), gy=Math.floor(lon/GRID_SIZE);
+  for(let dx=-rings;dx<=rings;dx++) for(let dy=-rings;dy<=rings;dy++){
+    const b=spatialGrid.get(`${gx+dx},${gy+dy}`); if(b) out.push(...b);
+  }
+  return out;
+}
+function nearestFrom(indices,lat,lon,skipIdx=-1){
+  let bestIdx=-1,bestDist=Infinity;
+  for(const i of indices){
+    if(i===skipIdx) continue;
+    const p=calibData[i], d=haversineKm(lat,lon,p.lat,p.lon);
+    if(d<bestDist){bestDist=d;bestIdx=i;}
+  }
+  return bestIdx<0?null:{idx:bestIdx,dist:bestDist};
+}
+
 async function loadCalibrationDataset(forceNetwork){
   const statusEl = document.getElementById('calib-status');
   try{
@@ -553,40 +592,6 @@ function offNetworkThresholdKm(accuracyMeters){
   if(!accuracyMeters || !Number.isFinite(accuracyMeters)) return OFF_NETWORK_KM;
   const bufferKm = Math.min(accuracyMeters, 200) / 1000;
   return Math.min(OFF_NETWORK_KM + bufferKm, 0.35);
-}
-
-const GRID_SIZE = 0.0025; // ~250 m latitude cells
-let spatialGrid = new Map();
-let corridorIndex = new Map();
-
-function gridKey(lat, lon){ return `${Math.floor(lat/GRID_SIZE)},${Math.floor(lon/GRID_SIZE)}`; }
-function corridorKey(e,b){ return `${e}|||${b}`; }
-function buildSpatialIndex(){
-  spatialGrid = new Map();
-  corridorIndex = new Map();
-  for(let i=0;i<calibData.length;i++){
-    const p=calibData[i];
-    const g=gridKey(p.lat,p.lon);
-    let bucket=spatialGrid.get(g); if(!bucket){bucket=[];spatialGrid.set(g,bucket);} bucket.push(i);
-    const c=corridorKey(p.e,p.b);
-    let cb=corridorIndex.get(c); if(!cb){cb=[];corridorIndex.set(c,cb);} cb.push(i);
-  }
-}
-function nearbyIndices(lat,lon,rings){
-  const out=[]; const gx=Math.floor(lat/GRID_SIZE), gy=Math.floor(lon/GRID_SIZE);
-  for(let dx=-rings;dx<=rings;dx++) for(let dy=-rings;dy<=rings;dy++){
-    const b=spatialGrid.get(`${gx+dx},${gy+dy}`); if(b) out.push(...b);
-  }
-  return out;
-}
-function nearestFrom(indices,lat,lon,skipIdx=-1){
-  let bestIdx=-1,bestDist=Infinity;
-  for(const i of indices){
-    if(i===skipIdx) continue;
-    const p=calibData[i], d=haversineKm(lat,lon,p.lat,p.lon);
-    if(d<bestDist){bestDist=d;bestIdx=i;}
-  }
-  return bestIdx<0?null:{idx:bestIdx,dist:bestDist};
 }
 
 function computeKmStation(lat, lon){
