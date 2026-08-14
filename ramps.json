@@ -1,0 +1,23 @@
+{
+  "_readme": "Template for KMTrack's interchange/ramp name layer. This file is SEPARATE from calibration.json and never affects km-station math — it only powers the 'near ramp: X' label. Replace the sample ramp below with real data, then host this file alongside index.html/calibration.json (same folder), named exactly 'ramps.json'.",
+
+  "_schema": {
+    "matchRadiusMeters": "Optional. How close (in meters) you must be to a ramp's point trail to trigger its label. Default is 50 if omitted.",
+    "ramps": "Array of ramp objects. Each needs: name, interchange (optional), and points (an ordered list of {lat, lon} breadcrumbs collected by driving the ramp)."
+  },
+
+  "matchRadiusMeters": 50,
+
+  "ramps": [
+    {
+      "name": "Ramp to NLEX Northbound",
+      "interchange": "Smart Communities Interchange (SCTEX Connector)",
+      "points": [
+        { "lat": 14.82130, "lon": 120.97010 },
+        { "lat": 14.82190, "lon": 120.97080 },
+        { "lat": 14.82250, "lon": 120.97140 },
+        { "lat": 14.82310, "lon": 120.97200 }
+      ]
+    }
+  ]
+}
