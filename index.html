@@ -130,7 +130,11 @@
   .defect-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
 
   .defect-category{margin-bottom:14px;}
-  .category-label{font-size:13px; font-weight:700; letter-spacing:0.5px; margin-bottom:6px; color:var(--line-white);}
+  .category-label{
+    font-size:13px; font-weight:700; letter-spacing:0.5px; margin-bottom:6px; color:var(--line-white);
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+  }
+  .category-label .category-label-text{flex:1; min-width:0;}
   .category-label .category-sub{font-size:10px; font-weight:400; color:#9aa0a6; display:block; margin-top:1px; letter-spacing:0;}
   .lane-btn-row{display:grid; grid-template-columns:repeat(5,1fr); gap:5px;}
   .lane-btn{
@@ -278,10 +282,13 @@ button {
 }
 
 
-  /* Per-category camera trigger (opens camera pre-tagged with that defect type) */
+  /* Per-category camera trigger (opens camera pre-tagged with that defect type).
+     Pinned to the far right of the label row (see .category-label's
+     justify-content:space-between above) so every button lines up in the
+     same column regardless of how long each category's label text is. */
   .category-camera-btn{
     display:inline-flex; align-items:center; justify-content:center;
-    width:24px; height:24px; margin-left:6px; padding:0; vertical-align:middle;
+    width:24px; height:24px; padding:0; flex-shrink:0;
     border-radius:6px; border:1px solid #565c62; background:rgba(255,255,255,.06);
     color:var(--line-white); font-size:12px; cursor:pointer; -webkit-tap-highlight-color:transparent;
   }
@@ -323,7 +330,7 @@ button {
   .camera-close,.camera-shutter{border:0;cursor:pointer;-webkit-tap-highlight-color:transparent;}
   .camera-close{background:rgba(0,0,0,.5);color:#fff;border:1px solid rgba(255,255,255,.35);border-radius:20px;padding:8px 12px;font-size:13px;}
   .camera-info{
-    position:absolute;left:0;right:0;bottom:0;padding:18px 18px calc(env(safe-area-inset-bottom) + 100px);
+    position:absolute;left:0;right:0;bottom:0;padding:18px 18px calc(env(safe-area-inset-bottom) + 192px);
     background:linear-gradient(to top,rgba(0,0,0,.86),rgba(0,0,0,.52),transparent);
     z-index:2;pointer-events:none;
   }
@@ -392,6 +399,34 @@ button {
     background:transparent; color:#ef8d83; font-weight:700; font-size:13px; cursor:pointer;
   }
   .logo-hint{font-size:11px; color:#9aa0a6; margin-top:10px; line-height:1.5;}
+
+  /* In-camera lane picker — lets a lane be attached to a photo before it's
+     captured, using the same LANE_PRESETS list as the log-entry editor.
+     Positioned as its own layer (not inside .camera-info, which is
+     pointer-events:none) so the dropdown stays tappable. */
+  .camera-lane-picker{
+    position:absolute; left:14px; right:14px;
+    bottom:calc(92px + env(safe-area-inset-bottom) + 14px);
+    z-index:3; display:flex; flex-direction:column; gap:7px;
+    background:rgba(0,0,0,.6); border:1px solid rgba(255,255,255,.28);
+    border-radius:10px; padding:9px 11px;
+  }
+  .camera-lane-picker .row{display:flex; align-items:center; gap:9px;}
+  .camera-lane-picker label{font-size:11px; font-weight:800; color:#fff; letter-spacing:.6px; white-space:nowrap; text-transform:uppercase;}
+  .camera-lane-picker select{
+    flex:1; padding:9px 28px 9px 10px; border-radius:7px; border:1px solid rgba(255,255,255,.35);
+    background-color:rgba(255,255,255,.14); color:#fff; font-size:14px; font-weight:700;
+    appearance:none; -webkit-appearance:none;
+    background-image:url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat:no-repeat; background-position:right 8px center; background-size:16px;
+  }
+  .camera-lane-picker select option{color:#0a0a0a;}
+  .camera-lane-picker input{
+    padding:9px 10px; border-radius:7px; border:1px solid rgba(255,255,255,.35);
+    background:rgba(255,255,255,.14); color:#fff; font-size:14px;
+  }
+  .camera-lane-picker input::placeholder{color:rgba(255,255,255,.65);}
+
   .photo-modal{align-items:center;justify-content:center;padding:18px;background:rgba(0,0,0,.92);}
   .photo-card{width:min(920px,100%);max-height:100%;display:flex;flex-direction:column;gap:10px;}
   #photo-preview{max-width:100%;max-height:78vh;object-fit:contain;border-radius:8px;background:#111;}
@@ -477,7 +512,7 @@ button {
     <div class="defect-gate">📍 Waiting for GPS fix — buttons activate automatically once your location is available. (If this doesn't clear, check that location access is allowed for this site.)</div>
 
     <div class="defect-category">
-      <div class="category-label">Potholes <button type="button" class="category-camera-btn" data-camera-type="Potholes" aria-label="Take Potholes photo">📷</button></div>
+      <div class="category-label"><span class="category-label-text">Potholes</span> <button type="button" class="category-camera-btn" data-camera-type="Potholes" aria-label="Take Potholes photo">📷</button></div>
       <div class="lane-btn-row">
         <label class="lane-btn pothole haptic-label"><input type="checkbox" switch class="lane-log-trigger" data-defect="Potholes" data-lane="1">1</label>
         <label class="lane-btn pothole haptic-label"><input type="checkbox" switch class="lane-log-trigger" data-defect="Potholes" data-lane="2">2</label>
@@ -488,7 +523,7 @@ button {
     </div>
 
     <div class="defect-category">
-      <div class="category-label">Shoving <button type="button" class="category-camera-btn" data-camera-type="Shoving" aria-label="Take Shoving photo">📷</button></div>
+      <div class="category-label"><span class="category-label-text">Shoving</span> <button type="button" class="category-camera-btn" data-camera-type="Shoving" aria-label="Take Shoving photo">📷</button></div>
       <div class="lane-btn-row">
         <label class="lane-btn shoving haptic-label"><input type="checkbox" switch class="lane-log-trigger" data-defect="Shoving" data-lane="1">1</label>
         <label class="lane-btn shoving haptic-label"><input type="checkbox" switch class="lane-log-trigger" data-defect="Shoving" data-lane="2">2</label>
@@ -499,7 +534,7 @@ button {
     </div>
 
     <div class="defect-category">
-      <div class="category-label">Cracks <button type="button" class="category-camera-btn" data-camera-type="Cracks (width>25 mm)" aria-label="Take Cracks photo">📷</button></div>
+      <div class="category-label"><span class="category-label-text">Cracks</span> <button type="button" class="category-camera-btn" data-camera-type="Cracks (width>25 mm)" aria-label="Take Cracks photo">📷</button></div>
       <div class="lane-btn-row">
         <label class="lane-btn cracks haptic-label"><input type="checkbox" switch class="lane-log-trigger" data-defect="Cracks (width>25 mm)" data-lane="1">1</label>
         <label class="lane-btn cracks haptic-label"><input type="checkbox" switch class="lane-log-trigger" data-defect="Cracks (width>25 mm)" data-lane="2">2</label>
@@ -510,7 +545,7 @@ button {
     </div>
 
     <div class="defect-category">
-      <div class="category-label">Others <span class="category-sub">(i.e., Damaged markings, Ravelling, Debris)</span> <button type="button" class="category-camera-btn" data-camera-type="Others" aria-label="Take Others photo">📷</button></div>
+      <div class="category-label"><span class="category-label-text">Others <span class="category-sub">(i.e., Damaged markings, Ravelling, Debris)</span></span> <button type="button" class="category-camera-btn" data-camera-type="Others" aria-label="Take Others photo">📷</button></div>
       <div class="lane-btn-row">
         <label class="lane-btn other haptic-label"><input type="checkbox" switch class="lane-log-trigger" data-defect="Others" data-lane="1">1</label>
         <label class="lane-btn other haptic-label"><input type="checkbox" switch class="lane-log-trigger" data-defect="Others" data-lane="2">2</label>
@@ -1230,6 +1265,7 @@ async function openCameraForNewEntry(type){
   cameraErrorEl.classList.remove('show');
   cameraErrorEl.textContent = '';
   cameraShutterBtn.disabled = false;
+  populateCameraLaneSelect('');
   updateCameraOverlay(draft);
   cameraModal.classList.add('show');
   cameraModal.setAttribute('aria-hidden','false');
@@ -1611,6 +1647,13 @@ document.addEventListener('DOMContentLoaded', () => {
     btn.addEventListener('click', () => openCameraForNewEntry(btn.dataset.cameraType));
   });
 
+  // ---- In-camera lane picker ----
+  document.getElementById('camera-lane-select').addEventListener('change', (e) => {
+    document.getElementById('camera-lane-others-input').style.display = e.target.value === 'Others' ? 'block' : 'none';
+    updateCameraDraftLane();
+  });
+  document.getElementById('camera-lane-others-input').addEventListener('input', updateCameraDraftLane);
+
   // ---- Custom logo manager (opened from the camera topbar) ----
   refreshLogoModalPreview();
   const logoModal = document.getElementById('logo-modal');
@@ -1830,6 +1873,50 @@ function populateLaneSelect(currentValue){
   }
 }
 
+// Same LANE_PRESETS list as the edit modal, used for the in-camera lane
+// picker so a lane can be attached to a photo before it's even captured.
+// Unlike the edit modal, a fresh camera entry has no lane yet, so this adds
+// a blank placeholder option rather than defaulting to a preset or "Others".
+function populateCameraLaneSelect(currentValue){
+  const sel = document.getElementById('camera-lane-select');
+  const othersInput = document.getElementById('camera-lane-others-input');
+  sel.innerHTML = '';
+  const placeholder = document.createElement('option');
+  placeholder.value = '';
+  placeholder.textContent = 'Select lane…';
+  sel.appendChild(placeholder);
+  LANE_PRESETS.forEach(opt => {
+    const o = document.createElement('option');
+    o.value = opt; o.textContent = opt;
+    sel.appendChild(o);
+  });
+  const isPreset = LANE_PRESETS.slice(0, -1).includes(currentValue);
+  if(currentValue && isPreset){
+    sel.value = currentValue;
+    othersInput.style.display = 'none';
+    othersInput.value = '';
+  }else if(currentValue){
+    sel.value = 'Others';
+    othersInput.style.display = 'block';
+    othersInput.value = currentValue;
+  }else{
+    sel.value = '';
+    othersInput.style.display = 'none';
+    othersInput.value = '';
+  }
+}
+
+// Pushes the picked lane onto the in-progress camera draft and refreshes
+// the live on-screen overlay, so what's shown while framing the shot
+// matches exactly what gets stamped into the captured photo.
+function updateCameraDraftLane(){
+  if(!cameraDraftEntry) return;
+  const selVal = document.getElementById('camera-lane-select').value;
+  const othersVal = document.getElementById('camera-lane-others-input').value.trim();
+  cameraDraftEntry.lane = selVal === 'Others' ? othersVal : selVal;
+  updateCameraOverlay(cameraDraftEntry);
+}
+
 function openEditModal(index){
   editingEntryIndex = index;
   const entry = entries[index];
@@ -1981,6 +2068,13 @@ if('serviceWorker' in navigator){
       <div class="capture-meta" id="camera-meta">GPS unavailable</div>
     </div>
     <div class="camera-error" id="camera-error"></div>
+    <div class="camera-lane-picker" id="camera-lane-picker">
+      <div class="row">
+        <label for="camera-lane-select">Lane</label>
+        <select id="camera-lane-select"></select>
+      </div>
+      <input id="camera-lane-others-input" type="text" placeholder="Specify lane" style="display:none;">
+    </div>
     <div class="camera-bottom">
       <button class="camera-shutter" id="camera-shutter" type="button" aria-label="Capture photo"></button>
     </div>
