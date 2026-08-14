@@ -90,6 +90,31 @@
     letter-spacing:0.5px; color:#f4f4f2;
   }
   .kmpost .segment-tag.faroff{background:rgba(193,57,43,0.5);}
+  .kmpost .ramp-tag{
+    display:none; margin-top:8px; background:rgba(47,143,224,0.22); border:1px solid #2f8fe0;
+    color:#e3f2ff; padding:6px 12px; border-radius:20px; font-size:12px; font-weight:700;
+    letter-spacing:0.3px; line-height:1.4;
+  }
+  .kmpost .ramp-tag.show{display:inline-block;}
+
+  /* Record ramp/interchange capture mode */
+  .record-ramp-form{display:flex; flex-direction:column; gap:8px; margin-top:8px;}
+  .record-ramp-form input{
+    padding:10px; border-radius:8px; border:1px solid #3a4046;
+    background:var(--panel); color:var(--line-white); font-size:13px;
+  }
+  .record-ramp-form input:disabled{opacity:0.55;}
+  .record-ramp-actions{display:flex; gap:8px; margin-top:8px;}
+  .record-ramp-toggle-btn.recording{background:var(--safety-red); color:var(--line-white);}
+  .record-ramp-status{font-size:11px; color:#9aa0a6; margin-top:8px; font-family:var(--mono); line-height:1.5;}
+  .record-ramp-list{margin-top:10px; display:flex; flex-direction:column; gap:6px;}
+  .record-ramp-item{
+    display:flex; align-items:center; justify-content:space-between; gap:8px;
+    background:var(--asphalt-2); border:1px solid #3a4046; border-radius:8px; padding:8px 10px; font-size:12px;
+  }
+  .record-ramp-item .name{font-weight:700;}
+  .record-ramp-item .meta{color:#9aa0a6; font-size:10px; font-family:var(--mono); margin-top:2px;}
+  .record-ramp-item .remove-btn{background:none; border:none; color:var(--safety-red); font-size:15px; cursor:pointer; padding:2px 6px;}
 
   /* Bound (direction) toggle — now a compact side panel inside .readout,
      next to the lat/lon/accuracy fields, rather than its own full-width block. */
@@ -216,6 +241,32 @@
   .log-entry .del{background:none; border:none; color:#c1392b; font-size:18px; cursor:pointer; padding:4px 8px;}
 
   .count-bar{font-size:12px; color:#9aa0a6; margin-bottom:10px; display:flex; justify-content:space-between;}
+
+  /* Inspection log header + multi-select delete */
+  .log-header{display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:10px;}
+  .log-header h2{margin:0;}
+  .select-toggle-btn{
+    flex:0 0 auto; background:transparent; border:1px solid #565c62; color:#c7ccd1;
+    font-size:11px; font-weight:700; letter-spacing:0.3px; padding:7px 12px; border-radius:20px;
+    cursor:pointer; -webkit-tap-highlight-color:transparent;
+  }
+  .select-toggle-btn.active{background:var(--line-yellow); color:#191c1f; border-color:var(--line-yellow);}
+  .log-entry.select-mode{cursor:pointer;}
+  .log-entry.selected{outline:2px solid var(--line-yellow); outline-offset:-2px; background:#33383d;}
+  .entry-checkbox{
+    flex:0 0 auto; width:22px; height:22px; border-radius:6px; border:2px solid #6b7176;
+    display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700;
+    color:#191c1f; background:transparent;
+  }
+  .entry-checkbox.checked{background:var(--line-yellow); border-color:var(--line-yellow);}
+  .bulk-actions-bar{display:flex; gap:8px; margin-bottom:10px;}
+  .bulk-actions-bar button{
+    flex:1; padding:12px; border-radius:8px; border:none; font-weight:700; font-size:13px;
+    cursor:pointer; -webkit-tap-highlight-color:transparent;
+  }
+  .bulk-select-all-btn{background:#565c62; color:var(--line-white);}
+  .bulk-delete-btn{background:var(--safety-red); color:var(--line-white);}
+  .bulk-delete-btn:disabled{background:#3a4046; color:#6b7176; cursor:not-allowed;}
 
   .export-btn{
     width:100%; padding:16px; margin-top:18px; border-radius:10px; border:none;
@@ -490,6 +541,7 @@ button {
     <div class="kmvalue" id="km-value">--.---</div>
     <div class="kmunit">kilometers (interpolated)</div>
     <div class="segment-tag" id="segment-tag">--</div>
+    <div class="ramp-tag" id="ramp-tag"></div>
   </div>
 
   <div class="schematic-block">
@@ -504,6 +556,27 @@ button {
       <summary>▸ Network calibration data</summary>
       <div class="calib-hint" id="calib-status">Loading NLEX network alignment...</div>
       <button class="calib-add" id="calib-reload">↻ Reload dataset</button>
+    </details>
+    <details class="calib">
+      <summary>▸ Interchange / ramp data</summary>
+      <div class="calib-hint" id="ramp-status">Loading interchange/ramp dataset...</div>
+      <button class="calib-add" id="ramp-reload">↻ Reload dataset</button>
+    </details>
+    <details class="calib">
+      <summary>▸ Record ramp / interchange</summary>
+      <div class="calib-hint">Enter a name, tap Start, then drive the ramp. Stop at the end — it shows live immediately, and gets included the next time you export ramps.json to update your server copy.</div>
+      <div class="record-ramp-form">
+        <input type="text" id="record-ramp-name" placeholder="Ramp name (required) — e.g. Ramp to NLEX Northbound">
+        <input type="text" id="record-ramp-interchange" placeholder="Interchange name (optional)">
+      </div>
+      <div class="record-ramp-actions">
+        <button type="button" class="calib-add record-ramp-toggle-btn" id="record-ramp-toggle">⏺ Start recording</button>
+      </div>
+      <div class="record-ramp-status" id="record-ramp-status">Not recording.</div>
+      <div class="record-ramp-list" id="record-ramp-list"></div>
+      <div class="record-ramp-actions">
+        <button type="button" class="calib-add" id="export-ramps-btn" disabled>⬇ Export ramps.json</button>
+      </div>
     </details>
   </section>
 
@@ -560,10 +633,17 @@ button {
   <div class="lane-divider"></div>
 
   <section class="block">
-    <h2>Inspection log</h2>
+    <div class="log-header">
+      <h2>Inspection log</h2>
+      <button type="button" class="select-toggle-btn" id="select-toggle-btn">Select</button>
+    </div>
     <div class="count-bar">
       <span id="count-label">0 entries</span>
       <span id="last-time">--</span>
+    </div>
+    <div class="bulk-actions-bar" id="bulk-actions-bar" style="display:none;">
+      <button type="button" class="bulk-select-all-btn" id="bulk-select-all-btn">Select all</button>
+      <button type="button" class="bulk-delete-btn" id="bulk-delete-btn" disabled>Delete selected (0)</button>
     </div>
     <div id="log-list"><div class="log-empty">No defects logged yet</div></div>
   </section>
@@ -837,6 +917,248 @@ window.addEventListener('online', () => {
   if(!calibData.length) loadCalibrationDataset(true);
 });
 
+// ---------- Interchange / ramp name lookup (additive layer) ----------
+// Deliberately kept separate from calibData/corridorIndex above: those
+// exist to interpolate a continuous km-station along the mainline, and
+// ramp points are not part of that continuous line (they fork off it).
+// Mixing them in would corrupt the km interpolation. This is a second,
+// independent dataset that only ever answers "am I near a named ramp?" —
+// it never feeds km-station math, defect logging, or CSV export.
+const STORAGE_KEY_RAMPS = 'nlex_ramp_dataset_v1';
+let rampData = [];           // [{name, interchange, points:[{lat,lon}]}]
+let rampPointIndex = [];     // flattened: [{lat,lon,rampIdx}] — one entry per point, across all ramps
+let rampGrid = new Map();    // same grid-bucket trick as spatialGrid, over rampPointIndex
+let rampMatchRadiusKm = 0.05; // default 50 m; a loaded dataset's matchRadiusMeters can override this
+
+function sanitizeRampData(raw){
+  if(!Array.isArray(raw)){
+    // Support either a bare array or {matchRadiusMeters, ramps:[...]}
+    if(raw && Array.isArray(raw.ramps)){
+      if(Number.isFinite(raw.matchRadiusMeters) && raw.matchRadiusMeters > 0){
+        rampMatchRadiusKm = raw.matchRadiusMeters / 1000;
+      }
+      raw = raw.ramps;
+    } else {
+      return [];
+    }
+  }
+  const clean = raw.filter(r => r && typeof r.name === 'string' && r.name.trim()
+    && Array.isArray(r.points) && r.points.length > 0
+  ).map(r => ({
+    name: r.name.trim(),
+    interchange: typeof r.interchange === 'string' ? r.interchange.trim() : '',
+    points: r.points.filter(p => p && Number.isFinite(p.lat) && Number.isFinite(p.lon))
+  })).filter(r => r.points.length > 0);
+  if(clean.length !== raw.length){
+    console.warn(`Ramp dataset: dropped ${raw.length - clean.length} malformed ramp(s).`);
+  }
+  return clean;
+}
+
+function buildRampIndex(){
+  rampPointIndex = [];
+  rampGrid = new Map();
+  rampData.forEach((ramp, rampIdx) => {
+    ramp.points.forEach(p => {
+      rampPointIndex.push({ lat: p.lat, lon: p.lon, rampIdx });
+    });
+  });
+  rampPointIndex.forEach((p, i) => {
+    const g = gridKey(p.lat, p.lon);
+    let bucket = rampGrid.get(g); if(!bucket){ bucket = []; rampGrid.set(g, bucket); } bucket.push(i);
+  });
+}
+
+function nearbyRampIndices(lat, lon, rings){
+  const out = []; const gx = Math.floor(lat/GRID_SIZE), gy = Math.floor(lon/GRID_SIZE);
+  for(let dx=-rings; dx<=rings; dx++) for(let dy=-rings; dy<=rings; dy++){
+    const b = rampGrid.get(`${gx+dx},${gy+dy}`); if(b) out.push(...b);
+  }
+  return out;
+}
+
+// Returns the nearest ramp within rampMatchRadiusKm, or null if nothing's close enough.
+function nearestRamp(lat, lon){
+  if(!rampPointIndex.length) return null;
+  let candidates = [];
+  for(const r of [1,2,4,8]){ candidates = nearbyRampIndices(lat,lon,r); if(candidates.length) break; }
+  if(!candidates.length) return null;
+  let bestIdx=-1, bestDist=Infinity;
+  for(const i of candidates){
+    const p = rampPointIndex[i];
+    const d = haversineKm(lat, lon, p.lat, p.lon);
+    if(d < bestDist){ bestDist = d; bestIdx = i; }
+  }
+  if(bestIdx < 0 || bestDist > rampMatchRadiusKm) return null;
+  const ramp = rampData[rampPointIndex[bestIdx].rampIdx];
+  return { ramp, distanceKm: bestDist };
+}
+
+async function loadRampDataset(forceNetwork){
+  const statusEl = document.getElementById('ramp-status');
+  try{
+    if(!forceNetwork){
+      const cached = localStorage.getItem(STORAGE_KEY_RAMPS);
+      if(cached){
+        rampData = sanitizeRampData(JSON.parse(cached));
+        buildRampIndex();
+        statusEl.textContent = `Loaded ${rampData.length.toLocaleString()} ramp(s) from on-device cache (works offline).`;
+        updateExportRampsBtn();
+        return;
+      }
+    }
+    statusEl.textContent = 'Downloading interchange/ramp dataset...';
+    const res = await fetch('ramps.json', { cache: 'no-store' });
+    if(!res.ok) throw new Error('HTTP ' + res.status);
+    const text = await res.text();
+    rampData = sanitizeRampData(JSON.parse(text));
+    buildRampIndex();
+    try{ localStorage.setItem(STORAGE_KEY_RAMPS, text); }catch(e){ /* dataset too big for storage quota; still usable this session */ }
+    statusEl.textContent = `Loaded ${rampData.length.toLocaleString()} ramp(s) from interchange/ramp dataset (cached for offline use).`;
+    updateExportRampsBtn();
+  }catch(err){
+    statusEl.textContent = rampData.length
+      ? `Using ${rampData.length.toLocaleString()} previously cached ramp(s) — couldn't refresh (${err.message}).`
+      : `Could not load ramp dataset (${err.message}). Ramp names will show as unavailable.`;
+  }
+}
+document.getElementById('ramp-reload').addEventListener('click', () => loadRampDataset(true));
+loadRampDataset(false);
+
+window.addEventListener('online', () => {
+  if(!rampData.length) loadRampDataset(true);
+});
+
+// ---------- Record ramp/interchange (capture mode) ----------
+// Builds ramps.json entries by driving the ramp with the app open, reusing
+// the same watchPosition stream already running for the live km readout —
+// no extra permissions, no separate GPS logger needed.
+let isRecordingRamp = false;
+let recordingPoints = [];
+const MIN_RAMP_POINT_SPACING_KM = 0.005; // ~5 m — skips near-duplicate points from GPS jitter while stopped/slow
+
+function captureRampPointIfRecording(lat, lon){
+  if(!isRecordingRamp) return;
+  const last = recordingPoints[recordingPoints.length - 1];
+  if(last){
+    const d = haversineKm(lat, lon, last.lat, last.lon);
+    if(d < MIN_RAMP_POINT_SPACING_KM) return;
+  }
+  recordingPoints.push({ lat, lon });
+  updateRecordRampStatus();
+}
+
+function updateRecordRampStatus(){
+  const statusEl = document.getElementById('record-ramp-status');
+  if(!isRecordingRamp){
+    statusEl.textContent = 'Not recording.';
+    return;
+  }
+  let distKm = 0;
+  for(let i = 1; i < recordingPoints.length; i++){
+    distKm += haversineKm(recordingPoints[i-1].lat, recordingPoints[i-1].lon, recordingPoints[i].lat, recordingPoints[i].lon);
+  }
+  statusEl.textContent = `⏺ Recording... ${recordingPoints.length} point(s) captured, ~${Math.round(distKm*1000)} m so far.`;
+}
+
+function renderRecordedRampsList(){
+  const list = document.getElementById('record-ramp-list');
+  const sessionRamps = rampData.filter(r => r._recordedThisSession);
+  if(sessionRamps.length === 0){ list.innerHTML = ''; return; }
+  list.innerHTML = sessionRamps.map(r => `
+    <div class="record-ramp-item">
+      <div>
+        <div class="name">${r.name}</div>
+        <div class="meta">${r.interchange ? r.interchange + ' · ' : ''}${r.points.length} pts</div>
+      </div>
+      <button type="button" class="remove-btn" data-name="${r.name.replace(/"/g,'&quot;')}">✕</button>
+    </div>
+  `).join('');
+  list.querySelectorAll('.remove-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const name = btn.dataset.name;
+      rampData = rampData.filter(r => !(r._recordedThisSession && r.name === name));
+      buildRampIndex();
+      renderRecordedRampsList();
+      updateExportRampsBtn();
+    });
+  });
+}
+
+function updateExportRampsBtn(){
+  document.getElementById('export-ramps-btn').disabled = rampData.length === 0;
+}
+
+const recordToggleBtn = document.getElementById('record-ramp-toggle');
+const recordNameInput = document.getElementById('record-ramp-name');
+const recordInterchangeInput = document.getElementById('record-ramp-interchange');
+
+recordToggleBtn.addEventListener('click', () => {
+  if(!isRecordingRamp){
+    const name = recordNameInput.value.trim();
+    if(!name){
+      alert('Enter a ramp name before starting.');
+      return;
+    }
+    isRecordingRamp = true;
+    recordingPoints = [];
+    recordToggleBtn.textContent = '⏹ Stop recording';
+    recordToggleBtn.classList.add('recording');
+    recordNameInput.disabled = true;
+    recordInterchangeInput.disabled = true;
+    updateRecordRampStatus();
+  } else {
+    isRecordingRamp = false;
+    recordToggleBtn.textContent = '⏺ Start recording';
+    recordToggleBtn.classList.remove('recording');
+    recordNameInput.disabled = false;
+    recordInterchangeInput.disabled = false;
+
+    if(recordingPoints.length < 2){
+      alert('Not enough points captured (need at least 2) — the recording was discarded. Drive further before stopping.');
+      recordingPoints = [];
+      updateRecordRampStatus();
+      return;
+    }
+
+    const name = recordNameInput.value.trim();
+    const interchange = recordInterchangeInput.value.trim();
+    rampData.push({
+      name,
+      interchange,
+      points: recordingPoints.slice(),
+      _recordedThisSession: true
+    });
+    buildRampIndex();
+    renderRecordedRampsList();
+    updateExportRampsBtn();
+    recordingPoints = [];
+    updateRecordRampStatus();
+    recordNameInput.value = '';
+    document.getElementById('record-ramp-status').textContent = `Saved "${name}". It'll now show live, and is included in the next export.`;
+  }
+});
+
+document.getElementById('export-ramps-btn').addEventListener('click', () => {
+  if(rampData.length === 0) return;
+  const payload = {
+    matchRadiusMeters: Math.round(rampMatchRadiusKm * 1000),
+    ramps: rampData.map(r => ({ name: r.name, interchange: r.interchange || '', points: r.points }))
+  };
+  const json = JSON.stringify(payload, null, 2);
+  const blob = new Blob([json], { type: 'application/json;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'ramps.json';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+});
+
+updateExportRampsBtn();
+
 // ---------- Clock ----------
 function tickClock(){
   const now = new Date();
@@ -1022,6 +1344,21 @@ function updateReadout(){
 
   renderBoundToggle(result.expressway);
   renderSchematic(result, isOffMappedNetwork);
+  updateRampReadout(currentPos.lat, currentPos.lon);
+}
+
+function updateRampReadout(lat, lon){
+  const rampEl = document.getElementById('ramp-tag');
+  const match = nearestRamp(lat, lon);
+  if(!match){
+    rampEl.classList.remove('show');
+    rampEl.textContent = '';
+    return;
+  }
+  rampEl.textContent = match.ramp.interchange
+    ? `⤴ ${match.ramp.interchange} — ${match.ramp.name}`
+    : `⤴ ${match.ramp.name}`;
+  rampEl.classList.add('show');
 }
 
 // ---------- Direction (bound) toggle — manual, since NB/SB coordinates are identical in this dataset ----------
@@ -1080,6 +1417,7 @@ if(navigator.geolocation){
         if(section) section.classList.remove('gps-pending');
       }
       updateReadout();
+      captureRampPointIfRecording(currentPos.lat, currentPos.lon);
     },
     (err) => {
       gpsStatus.textContent = 'GPS error: ' + err.message;
@@ -1157,6 +1495,34 @@ function playConfirmSound(){
     osc.stop(audioCtx.currentTime + 0.15);
   }catch(e){ /* Web Audio unavailable — fail silently, logging still works */ }
 }
+
+// ---------- Haptic feedback (vibration) ----------
+// Fires navigator.vibrate() for every button-like tap across the app.
+// Sound (playConfirmSound above) is untouched/unrelated — this is purely
+// the tactile layer, and it's additive so it works alongside the native
+// iOS "switch" haptic already used by the checkbox-backed lane buttons.
+// navigator.vibrate is unsupported on iOS Safari, so this silently no-ops
+// there (the native switch-toggle haptic still covers those specific
+// buttons on iOS) while providing real vibration on Android/Chrome.
+let lastHapticAt = 0;
+function triggerHaptic(duration){
+  try{
+    if(!('vibrate' in navigator)) return;
+    const now = Date.now();
+    // Dedupe: tapping a <label> dispatches a click on the label AND a
+    // second, bubbling click on the checkbox/input it wraps for the same
+    // physical tap — without this guard that would fire two vibrations.
+    if(now - lastHapticAt < 60) return;
+    lastHapticAt = now;
+    navigator.vibrate(duration || 12);
+  }catch(e){ /* vibration unavailable — fail silently */ }
+}
+document.addEventListener('click', (e) => {
+  const el = e.target.closest('button, .lane-btn, .logo-upload-label, .select-toggle-btn, [role="button"]');
+  if(!el) return;
+  if(el.tagName === 'BUTTON' && el.disabled) return;
+  triggerHaptic();
+}, true);
 
 // ---------- Optional inspection camera ----------
 // A camera capture is its own separate inspection entry (a photo entry),
@@ -1715,6 +2081,28 @@ function typeClass(type){
 // ---------- Delete-entry confirmation (native confirm() — confirmed
 // working once the app is installed to the Home Screen) ----------
 
+// ---------- Multi-select delete mode ----------
+let selectMode = false;
+let selectedIndices = new Set();
+
+function updateBulkBar(){
+  const bar = document.getElementById('bulk-actions-bar');
+  const delBtn = document.getElementById('bulk-delete-btn');
+  const allBtn = document.getElementById('bulk-select-all-btn');
+  bar.style.display = selectMode ? 'flex' : 'none';
+  delBtn.textContent = `Delete selected (${selectedIndices.size})`;
+  delBtn.disabled = selectedIndices.size === 0;
+  allBtn.textContent = (selectedIndices.size > 0 && selectedIndices.size === entries.length) ? 'Deselect all' : 'Select all';
+}
+
+function exitSelectMode(){
+  selectMode = false;
+  selectedIndices.clear();
+  document.getElementById('select-toggle-btn').classList.remove('active');
+  document.getElementById('select-toggle-btn').textContent = 'Select';
+  updateBulkBar();
+}
+
 function renderLog(){
   const list = document.getElementById('log-list');
   const exportBtn = document.getElementById('export-btn');
@@ -1725,6 +2113,7 @@ function renderLog(){
   if(entries.length === 0){
     list.innerHTML = '<div class="log-empty">No defects logged yet</div>';
     exportBtn.disabled = true;
+    if(selectMode) exitSelectMode();
     return;
   }
   exportBtn.disabled = false;
@@ -1733,7 +2122,8 @@ function renderLog(){
   entries.slice().reverse().forEach((e) => {
     const realIdx = entries.indexOf(e);
     const div = document.createElement('div');
-    div.className = 'log-entry ' + typeClass(e.type);
+    const isSelected = selectedIndices.has(realIdx);
+    div.className = 'log-entry ' + typeClass(e.type) + (selectMode ? ' select-mode' : '') + (isSelected ? ' selected' : '');
     div.dataset.idx = realIdx;
 
     const photoActionsHtml = e.photoId ? `
@@ -1744,13 +2134,17 @@ function renderLog(){
       <div class="photo-status">Photo entry${e.photoTimestamp ? ' · '+e.photoTimestamp : ''}</div>
     ` : '';
 
+    const checkboxHtml = selectMode
+      ? `<div class="entry-checkbox${isSelected ? ' checked' : ''}" data-idx="${realIdx}">${isSelected ? '✓' : ''}</div>`
+      : `<button class="del" data-idx="${realIdx}">✕</button>`;
+
     div.innerHTML = `
       <div class="info">
         <div class="type">${e.type}</div>
         <div class="meta">${e.timestamp}<br>${e.lat.toFixed(6)}, ${e.lon.toFixed(6)} · km ${e.km !== null && e.km !== undefined ? formatKmStation(e.km) : 'n/a'}${e.expressway ? ` · ${e.expressway}${e.bound ? ' '+e.bound : ''}` : ''}${e.lane ? ` · Lane: ${e.lane}` : ' · Lane: —'}</div>
         ${photoActionsHtml}
       </div>
-      <button class="del" data-idx="${realIdx}">✕</button>
+      ${checkboxHtml}
     `;
     list.appendChild(div);
   });
@@ -1790,13 +2184,59 @@ function renderLog(){
       await deletePhoto(photoId);
     });
   });
+  if(selectMode) updateBulkBar();
 }
 renderLog();
+
+document.getElementById('select-toggle-btn').addEventListener('click', () => {
+  selectMode = !selectMode;
+  selectedIndices.clear();
+  const toggleBtn = document.getElementById('select-toggle-btn');
+  toggleBtn.classList.toggle('active', selectMode);
+  toggleBtn.textContent = selectMode ? 'Cancel' : 'Select';
+  updateBulkBar();
+  renderLog();
+});
+
+document.getElementById('bulk-select-all-btn').addEventListener('click', () => {
+  if(selectedIndices.size === entries.length){
+    selectedIndices.clear();
+  } else {
+    entries.forEach((_, i) => selectedIndices.add(i));
+  }
+  updateBulkBar();
+  renderLog();
+});
+
+document.getElementById('bulk-delete-btn').addEventListener('click', async () => {
+  if(selectedIndices.size === 0) return;
+  if(!confirm(`Delete ${selectedIndices.size} selected ${selectedIndices.size === 1 ? 'entry' : 'entries'}? This cannot be undone.`)) return;
+  const idxs = Array.from(selectedIndices).sort((a, b) => b - a); // descending so splicing doesn't shift earlier indices
+  const photoIdsToDelete = [];
+  idxs.forEach(idx => {
+    const entry = entries[idx];
+    if(!entry) return;
+    if(entry.photoId) photoIdsToDelete.push(entry.photoId);
+    entries.splice(idx, 1);
+  });
+  saveEntries();
+  exitSelectMode();
+  renderLog();
+  for(const photoId of photoIdsToDelete){ await deletePhoto(photoId); }
+});
 
 document.addEventListener('click', (e) => {
   if(e.target.closest('.del') || e.target.closest('.photo-view-btn') || e.target.closest('.photo-remove-btn')) return;
   const card = e.target.closest('.log-entry');
-  if(card && card.dataset.idx !== undefined) openEditModal(Number(card.dataset.idx));
+  if(!card || card.dataset.idx === undefined) return;
+  const idx = Number(card.dataset.idx);
+  if(selectMode){
+    if(selectedIndices.has(idx)) selectedIndices.delete(idx); else selectedIndices.add(idx);
+    updateBulkBar();
+    renderLog();
+    return;
+  }
+  openEditModal(idx);
 });
 
 document.getElementById('clear-btn').addEventListener('click', () => {
